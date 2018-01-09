@@ -1,0 +1,2 @@
+# Android_Developer_Chinese_Version
+Android 开发者谷歌官方网站自动跳转到无需穿墙的镜像站。
