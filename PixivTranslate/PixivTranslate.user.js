@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0
+// @version      1.0.1
 // @description  目前只有标签翻译这样
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -10,6 +10,8 @@
 // ==/UserScript==
 var tag_trans=[
     '漫画','漫画',
+    'UTAU獣人','兽人虚拟歌手',
+    '狼音アロ','狼音阿罗',
     'ケモノ','野兽',
     'furry','兽人',
     '獣人','兽人', // 这个是日文的
@@ -24,8 +26,11 @@ var tag_trans=[
     'モリタカ','犬塚戍孝',
     'ホロケウカムイ','狼神神威', //ID为 20880639 的作者似乎打错了这个标签所以替换不到
     'テムジン','铁木真',
+    'ガルム','加姆',
     '主5','5号主人公（东放）',
+    'ふんどし','兜裆布',
     '褌','兜裆布',
+    'ㄋㄟㄋㄟ','胸部',
     '金的','捣蛋',
     '猿轡','封口',
     '拘束','捆绑Play'
@@ -54,6 +59,7 @@ function main_do(){
     tagTranslate_illust_single(); // 作品页面的标签
     tagTranslate_bookmark(); // 个人空间的收藏列表页面的标签
     tagTranslate_addBookmark(); // 添加收藏时的可选择标签
+    tagTranslate_member_tag_all();
 }
 function tagTranslate_illust_single(){
     if(location.pathname != '/member_illust.php')return;
@@ -67,7 +73,6 @@ function tagTranslate_illust_single(){
         if(tt){
             c[0].childNodes[0].innerText=tt;
             if(c.length>1) c[1].remove();
-            break;
         }
     }
 }
@@ -78,6 +83,24 @@ function tagTranslate_illust(){
 function tagTranslate_bookmark(){
     if(location.pathname != '/bookmark.php')return;
     tagTranslate_mode_tagCloud();
+}
+function tagTranslate_member_tag_all(){
+    if(location.pathname != '/member_tag_all.php')return;
+    tagTranslate_mode_tagCloud();
+    var tags=fc('tag-list');
+    if(tags.length==0)return;
+    tags=tags[0].getElementsByTagName('dd');
+    for(var dd=0;dd<tags.length;dd++){
+        var c=tags[dd].childNodes[0].childNodes;
+        for(var li=0;li<c.length;li++){
+            var tt=tagDict(c[li].innerText);
+            if(tt){
+                var atag= c[li].getElementsByTagName('a')[0];
+                atag.innerText=tt;
+                atag.style.backgroundColor='#ffd040';
+            }
+        }
+    }
 }
 function tagTranslate_mode_tagCloud(){
     var tags=fc('tagCloud');
