@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         百度广告强力屏蔽
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0
-// @description  在搜索结果页面全程护眼。
+// @version      1.0.1
+// @description  在搜索结果页面全程护眼。若有误判，多刷新几次试试。若误判率高请在讨论区或issue区反馈。紧急情况请用我的网站上的QQ临时会话。
 // @author       LEORChn
 // @include      *://www.baidu.com/*
 // @run-at       document-start
@@ -41,12 +41,12 @@ function block(){ // 这里面做规则
         if(a[i].nodeName != 'DIV') continue;
         var s=a[i].innerText;
         s=s.substr(s.length-2);
-        if(s=='广告')
+        if(s==w())
             removed(a[i]);
         else{
             var sp=a[i].getElementsByTagName('span');
             for(var i2=0;i2<sp.length;i2++){
-                if(sp[i2].innerText.includes('广告'))
+                if(sp[i2].innerText.includes(w()))
                     removed(a[i]);
             }
         }
@@ -74,3 +74,10 @@ function ct(tag){return document.createElement(tag);}
 function msgbox(msg){alert(msg);}
 function inputbox(title,defalt){return prompt(title,defalt);}
 function pl(s){console.log(s);}
+function w(){
+var a=[5,15,1,7,10,0,2,12,8,14,4,3,11,9,13,6,117,37],b=[17,16,0,9,3,1,17,16,0,10,10,4],c='',d='';
+for(var e=0;e<12;e++){
+c+=a[b[e]]>20?String.fromCharCode(a[b[e]]):a[b[e]].toString(16);
+if((e+1)%6==0){d+=unescape(c);c='';}
+}return d;
+}
