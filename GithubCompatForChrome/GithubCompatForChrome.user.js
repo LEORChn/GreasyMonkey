@@ -12,8 +12,8 @@
 // ==/UserScript==
 /* Loading order of compat js: (same order can be load by async)
     1 - assets/compat-(*).js
-    1 - assets/frameworks-(*).js
-    2 - assets/github-(*).js
+    2 - assets/frameworks-(*).js
+    3 - assets/github-(*).js
    Be affected method:
     1 - jsCompat()
     2 - load()
@@ -32,21 +32,21 @@ function recheck(){
 function init(){ // call once when start loading page
     rmViews();
     if(inited) return;
-    if(ft('body').length==0) return; // jsRemove();
+    if(fc('footer').length==0) return; // 找到 footer 就说明网页基本加载完毕，可以开始加载 JS 了
     jsCompat();
     inited=true;
 }
 function rmViews(){
-    var d;
-    try{ // 登录提示
-        d=fc('signup-prompt-bg')[0];
-        if(d)d.remove();
-    }catch(e){}
-    try{ // 浏览器太旧提示
-        d=fc('unsupported-browser')[0];
-        if(d)d.remove();
+    tryRemove(fc('signup-prompt-bg'),0); // 登录提示
+    tryRemove(fc('unsupported-browser'),0); // 浏览器太旧提示
+}
+function tryRemove(d,i){
+    try{
+        if(!isNaN(i) && d[i]) d[i].remove();
+        else d.remove();
     }catch(e){}
 }
+// unsupported-(*).js 可能只是用来激活顶部浏览器太旧提示的，不管他或许也行
 /*function jsRemove(){ // remove assets/unsupported-(*).js if needed
     var spt=ft('script');
     for(var i=0,len=spt.length;i<len;i++) if(spt[i].src.includes('unsupported')) spt[i].remove();
@@ -54,15 +54,16 @@ function rmViews(){
 function jsCompat(){
     addjs('https://assets-cdn.github.com/assets/compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
     addjs('https://assets-cdn.github.com/assets/frameworks-c163002918ede72971a36e0025f67a4a.js');
+    addjs('https://assets-cdn.github.com/assets/github-8d674aa76ee19b76d61e8afe7d9b1209.js'); // github-(*).js ？去他妈的异步
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
-        addjs('https://assets-cdn.github.com/assets/github-8d674aa76ee19b76d61e8afe7d9b1209.js');
         return true;
     }
 }
-function addjs(url){
+function addjs(url,async){
     var d=ct('script');
+    if(async) d.async='async';
     d.type='application/javascript';
     d.src=url;
     ft('body')[0].appendChild(d);
