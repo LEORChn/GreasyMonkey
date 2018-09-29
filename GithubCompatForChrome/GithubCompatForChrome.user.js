@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.2
+// @version      1.0.3
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -30,30 +30,34 @@ function recheck(){
     setTimeout(recheck,100);
 }
 function init(){ // call once when start loading page
+    rmViews();
     if(inited) return;
     if(ft('body').length==0) return; // jsRemove();
     jsCompat();
-    rmViews();
     inited=true;
 }
 function rmViews(){
     var d;
-    d=fc('signup-prompt-bg')[0];
-    if(d)d.remove();
-    d=fc('unsupported-browser')[0];
-    if(d)d.remove();
+    try{ // 登录提示
+        d=fc('signup-prompt-bg')[0];
+        if(d)d.remove();
+    }catch(e){}
+    try{ // 浏览器太旧提示
+        d=fc('unsupported-browser')[0];
+        if(d)d.remove();
+    }catch(e){}
 }
 /*function jsRemove(){ // remove assets/unsupported-(*).js if needed
     var spt=ft('script');
     for(var i=0,len=spt.length;i<len;i++) if(spt[i].src.includes('unsupported')) spt[i].remove();
 }*/
 function jsCompat(){
-    addjs('https://assets-cdn.github.com/assets/compat-a48960bafc17c30572990bbab3664e9c.js');
-    addjs('https://assets-cdn.github.com/assets/frameworks-e862d0f5d5e4edb5939aab5784639150.js');
+    addjs('https://assets-cdn.github.com/assets/compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
+    addjs('https://assets-cdn.github.com/assets/frameworks-c163002918ede72971a36e0025f67a4a.js');
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
-        addjs('https://assets-cdn.github.com/assets/github-b1fc511319f2baac01d4c600b5a9b6f1.js');
+        addjs('https://assets-cdn.github.com/assets/github-8d674aa76ee19b76d61e8afe7d9b1209.js');
         return true;
     }
 }
