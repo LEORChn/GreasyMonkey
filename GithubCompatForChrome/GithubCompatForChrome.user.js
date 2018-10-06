@@ -53,8 +53,11 @@ function tryRemove(d,i){
 }*/
 function jsCompat(){
     addjs('https://assets-cdn.github.com/assets/compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
-    addjs('https://assets-cdn.github.com/assets/frameworks-c163002918ede72971a36e0025f67a4a.js');
-    addjs('https://assets-cdn.github.com/assets/github-8d674aa76ee19b76d61e8afe7d9b1209.js'); // github-(*).js ？去他妈的异步
+    addjs('https://assets-cdn.github.com/assets/frameworks-5cc68fa4a212f8349010ddff8198506c.js');
+    setTimeout(githubJs,5000);
+}
+function githubJs(){ // 有时这个该死的玩意加载顺序不对
+    addjs('https://assets-cdn.github.com/assets/github-de3df06b3ffbf7fc82dc1aa0aacf2faf.js'); // github-(*).js ？去他妈的异步
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
