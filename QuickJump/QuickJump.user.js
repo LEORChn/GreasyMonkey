@@ -6,6 +6,7 @@
 // @author       LEORChn
 // @include      *://developer.coolapk.com/*
 // @include      *://passport.csdn.net/*
+// @include      *://blog.csdn.net/*
 // @include      *://www.google.com.hk/*
 // @run-at       document-start
 // @grant        none
@@ -23,12 +24,14 @@ function init(){ // call once when start loading page
     //if(inited) return;
     checkIfCoolApk();
     checkIfCsdn();
+    checkIfCsdnBlog();
     if(ft('body').length==0) return;
     inited=true;
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
         checkIfCsdn();// write code here
+        checkIfCsdnBlog();
         return true;
     }
 }
@@ -69,6 +72,19 @@ function checkIfCsdn(){
 }
 function openWithoutReferer(url){ // 当前页面打开 URL 而不带 referer
     document.body.appendChild(document.createElement('iframe')).src='javascript:"<script>top.location.replace(\''+url+'\')<\/script>"';
+}
+function checkIfCsdnBlog(){
+    if(location.host=='blog.csdn.net'){
+        try{
+            fv('article_content').style.height='';
+        }catch(e){}
+        try{
+            fc('hide-article-box')[0].remove();
+        }catch(e){}
+        try{
+            fc('recommend-box')[0].style.cssText='height:200px;overflow:hidden';
+        }catch(e){}
+    }
 }
 //----- my ezjs lib
 function fv(id){return document.getElementById(id);}
