@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.0
+// @version      1.1.1
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -51,6 +51,8 @@ function tryRemove(d,i){
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
+        //-- 首页
+        fixDashboardFeed();
         //-- 个人资料
         fixSetPinnedRepositories();
         //-- 仓库
@@ -76,6 +78,23 @@ function unblockButtons(){
     for(var p=0; p<t.length; p++) t[p].removeAttribute('disabled');
 }
 //============== 通用界面 以上
+//============== 首页 以下
+function fixDashboardFeed(){
+    var t=$('div.news>.js-all-activity-header+div.js-dashboard-deferred');
+    if(t) { t.setAttribute('src', t.getAttribute('data-src')); insertItsSrc(t); fixDashboardFeedNext(); }
+}
+function fixDashboardFeedNext(){
+    var t= $('form.js-ajax-pagination>button.ajax-pagination-btn');
+    if(t) t.onclick=function(){ var p=this.parentElement; p.setAttribute('src', p.getAttribute('action')); repItsSrc(p); return false;}
+    var y= $$('button.js-details-target.text-gray-dark');
+    for(var i=0;i<y.length;i++)
+        y[i].onclick=function(){
+            var p=this.parentElement.parentElement.getElementsByClassName('Details-content--hidden dashboard-rollup-items')[0];
+            p.style.cssText= p.style.cssText==''? 'display:block !important': '';
+        }
+    setTimeout(fixDashboardFeedNext,3000);
+}
+//============== 首页 以上
 //============== 个人资料界面 以下
 //------ 自己资料
 function fixSetPinnedRepositories(){
