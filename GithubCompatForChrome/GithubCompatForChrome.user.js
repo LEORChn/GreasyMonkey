@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.1
+// @version      1.1.2
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -35,9 +35,9 @@ function recheck(){
 function init(){ // call once when start loading page
     rmViews();
     if(inited) return;
-    //if(fc('footer').length==0) return; // 找到 footer 就说明网页基本加载完毕，可以开始加载 JS 了
-    //jsCompat();
-    //inited=true;
+    if(fc('footer').length==0) return; // 找到 footer 就说明网页基本加载完毕，可以开始加载 JS 了
+    jsCompat();
+    inited=true;
 }
 function rmViews(){
     tryRemove(fc('signup-prompt-bg'),0); // 登录提示
@@ -111,8 +111,8 @@ function fixWatcherInline(){
 }
 //------ 仓库 > code
 function fixBranchSwitch(){
-    var t=$('details-menu[src]');
-    if(t) insertItsSrc(t);//http('get',t.getAttribute('src'),'',function(){t.innerHTML=this.responseText;});
+    var t=$('details>summary.select-menu-button+details-menu[src]');
+    if(t) insertItsSrc(t);
 }
 function fixLanguageDetail(){
     var t=$('button.repository-lang-stats-graph');
@@ -170,20 +170,21 @@ function http2(method,url,formed,dofun,dofail){
     var spt=ft('script');
     for(var i=0,len=spt.length;i<len;i++) if(spt[i].src.includes('unsupported')) spt[i].remove();
 }*/
-var baseUrl='https://github.com/LEORChn/LEORChn.github.io/raw/master/archive/assets-cdn.github.com/assets/';
+
+var baseUrl='https://github.com/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
 function jsCompat(){
-    addjs(baseUrl+'compat-1c66c88316e8e9eacfac51af6ff01eac.js');
-    addjs(baseUrl+'frameworks-a2e17e1bb4b33f83985c8bddfee72bc7.js');
+    addjs(baseUrl+'compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
+    addjs(baseUrl+'frameworks-5cc68fa4a212f8349010ddff8198506c.js');
     setTimeout(githubJs,5000);
 }
 function githubJs(){ // 有时这个该死的玩意加载顺序不对
-    addjs(baseUrl+'github-a62aa302e53c46b4501ee9c8c591ed18.js'); // github-(*).js ？去他妈的异步
+    addjs(baseUrl+'github-de3df06b3ffbf7fc82dc1aa0aacf2faf.js'); // github-(*).js ？去他妈的异步
 }
 function addjs(url,async){
     var d=ct('script');
     if(async) d.async='async';
     d.type='application/javascript';
     d.src=url;
-    //ft('body')[0].appendChild(d);
+    ft('body')[0].appendChild(d);
     //document.write('<script src="'+url+'"></script>');
 }
