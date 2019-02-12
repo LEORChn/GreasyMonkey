@@ -36,7 +36,6 @@ function init(){ // call once when start loading page
     rmViews();
     if(inited) return;
     if(fc('footer').length==0) return; // 找到 footer 就说明网页基本加载完毕，可以开始加载 JS 了
-    jsCompat();
     inited=true;
 }
 function rmViews(){
@@ -62,6 +61,7 @@ function load(){ // call once when loaded page
         fixPopularContent();
         whateverDaemon();
         launchedNotice();
+        jsCompat();
         return true;
     }
 }
@@ -116,7 +116,19 @@ function fixBranchSwitch(){
 }
 function fixLanguageDetail(){
     var t=$('button.repository-lang-stats-graph');
-    if(t) t.onclick=function(){ var p=$('.stats-switcher-wrapper>.numbers-summary'); if(p) p.style.display= p.style.display == 'none'? '': 'none';}
+    if(t) t.onclick=function(){ // 禁止CSP的情况下能够加载Github给的兼容包，这个修改可能会有界面冲突
+        setTimeout(function(){
+            var p=$('.stats-switcher-wrapper>.numbers-summary');
+            if(p){
+                if(p.parentElement.parentElement.className.includes('is-revealing-lang-stats')){
+                    p.style.display='';
+                    t.onclick=null;
+                    return;
+                }
+                p.style.display= p.style.display == 'none'? '': 'none';
+            }
+        },200);
+    }
 }
 function fixCommitDetail(){
     var t=$('include-fragment.commit-loader>div.loader-error');
@@ -171,8 +183,11 @@ function http2(method,url,formed,dofun,dofail){
     for(var i=0,len=spt.length;i<len;i++) if(spt[i].src.includes('unsupported')) spt[i].remove();
 }*/
 
-var baseUrl='https://github.com/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
+var baseUrl=
+    'https://assets-cdn.github.com/assets/';
+    //'/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
 function jsCompat(){
+    pl('adding compat');
     addjs(baseUrl+'compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
     addjs(baseUrl+'frameworks-5cc68fa4a212f8349010ddff8198506c.js');
     setTimeout(githubJs,5000);
