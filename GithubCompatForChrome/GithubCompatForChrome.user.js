@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.2
+// @version      1.2.1
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -22,7 +22,7 @@ var showNoticeWhenLaunched = 1
    Use this User-Agent to update js compat packs' link in the HTML page:
     Mozilla/5.0 (Windows NT 6.1; WOW64; Trident/7.0; rv:11.0) like Gecko
 */
-var inited=false;
+var inited = false, isCspDisabled = false;
 (function() {
     recheck();
 })();
@@ -115,20 +115,8 @@ function fixBranchSwitch(){
     if(t) insertItsSrc(t);
 }
 function fixLanguageDetail(){
-    var t=$('button.repository-lang-stats-graph');
-    if(t) t.onclick=function(){ // 禁止CSP的情况下能够加载Github给的兼容包，这个修改可能会有界面冲突
-        setTimeout(function(){
-            var p=$('.stats-switcher-wrapper>.numbers-summary');
-            if(p){
-                if(p.parentElement.parentElement.className.includes('is-revealing-lang-stats')){
-                    p.style.display='';
-                    t.onclick=null;
-                    return;
-                }
-                p.style.display= p.style.display == 'none'? '': 'none';
-            }
-        },200);
-    }
+    var t=$('button.repository-lang-stats-graph'), p=$('div.stats-switcher-viewport.js-stats-switcher-viewport'), c='is-revealing-lang-stats';
+    if(t) t.onclick=function(){ if(p) if(!isCspDisabled) if(hasClass(p,c)) removeClass(p,c); else addClass(p,c); }
 }
 function fixCommitDetail(){
     var t=$('include-fragment.commit-loader>div.loader-error');
@@ -155,6 +143,40 @@ function repItsSrc(t){
 function insertItsSrc(t,repMode){
     if(t) http('get',t.getAttribute('src'),'',function(){if(repMode) t.outerHTML=this.responseText; else t.innerHTML=this.response;});
 }
+//============== CSP 已禁用模式 专区 以下
+var baseUrl=
+    'https://assets-cdn.github.com/assets/';
+    //'/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
+var p_a, p_b, p_c, p_d, definderPhase = 0;
+function jsCompat(){ // 经典的入口。。
+    switch(definderPhase){
+        case 0:
+            pl('Github Compat: Trying to enter the CSP-Disabled Mode.');
+            window.define = function(a,b,c,d){
+                pl('Github Compat: CSP is disabled, one of the params is -> '+a);
+                p_a=a; p_b=b; p_c=c; p_d=d;
+                window.define = undefined;
+                definderPhase++;
+                jsCompat();
+            }
+            addjs(baseUrl+'github-de3df06b3ffbf7fc82dc1aa0aacf2faf.js');
+            return; // 这个地方只要等 github.js 调用一次就可以触发下一步操作
+        case 1:
+            addjs(baseUrl+'compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
+            addjs(baseUrl+'frameworks-5cc68fa4a212f8349010ddff8198506c.js');
+            definderPhase++;
+            break;
+        case 2:
+            if(window.define){
+                window.define(p_a, p_b, p_c, p_d);
+                isCspDisabled=true;
+                pl('Github Compat: All Done! You are entered the CSP-Disabled Mode now.');
+                return;
+            }
+    }
+    setTimeout(jsCompat, 200);
+}
+//============== CSP 已禁用模式 专区 以上
 //----- my ezjs lib
 function fv(id){return document.getElementById(id);}
 function ft(tag){return document.getElementsByTagName(tag);}
@@ -165,6 +187,9 @@ function $$(s){return document.querySelectorAll(s);}
 function msgbox(msg){alert(msg);}
 function inputbox(title,defalt){return prompt(title,defalt);}
 function pl(s){console.log(s);}
+function hasClass(e,n){ return !!e.className.match(new RegExp("(\\s|^)"+n+"(\\s|$)")); }
+function addClass(e,n){ if(!hasClass(e,n)) e.className+=' '+n; }
+function removeClass(e,n){ if(hasClass(e,n)) e.className=e.className.replace(new RegExp('(\\s|^)'+n+'(\\s|$)'), ' '); }
 function http2(method,url,formed,dofun,dofail){
 	var x=new XMLHttpRequest();
 	x.timeout=60000;
@@ -175,6 +200,13 @@ function http2(method,url,formed,dofun,dofail){
 	x.ontimeout=x.onerror= dofail? dofail: null;
 	x.send(formed?formed:'');
 }
+function addjs(url,async){
+    var d=ct('script');
+    if(async) d.async='async';
+    d.type='application/javascript';
+    d.src=url;
+    ft('body')[0].appendChild(d);
+}
 //废弃代码备份用 鬼知道什么时候要参考看看的
 //========================================================================================================
 // unsupported-(*).js 可能只是用来激活顶部浏览器太旧提示的，不管他或许也行
@@ -182,24 +214,3 @@ function http2(method,url,formed,dofun,dofail){
     var spt=ft('script');
     for(var i=0,len=spt.length;i<len;i++) if(spt[i].src.includes('unsupported')) spt[i].remove();
 }*/
-
-var baseUrl=
-    'https://assets-cdn.github.com/assets/';
-    //'/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
-function jsCompat(){
-    pl('adding compat');
-    addjs(baseUrl+'compat-3c69a4d015c4208bce7a9d5e4e15a914.js');
-    addjs(baseUrl+'frameworks-5cc68fa4a212f8349010ddff8198506c.js');
-    setTimeout(githubJs,5000);
-}
-function githubJs(){ // 有时这个该死的玩意加载顺序不对
-    addjs(baseUrl+'github-de3df06b3ffbf7fc82dc1aa0aacf2faf.js'); // github-(*).js ？去他妈的异步
-}
-function addjs(url,async){
-    var d=ct('script');
-    if(async) d.async='async';
-    d.type='application/javascript';
-    d.src=url;
-    ft('body')[0].appendChild(d);
-    //document.write('<script src="'+url+'"></script>');
-}
