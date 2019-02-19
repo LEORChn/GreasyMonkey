@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.2
-// @description  目前只有标签翻译这样。以及作品详情页对标题和说明使用的谷歌翻译
+// @version      1.1
+// @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
 // @run-at       document-start
@@ -36,6 +36,7 @@ var tag_trans=[
     '主5','5号主人公（东放）',
     'ふんどし','兜裆布',
     '褌','兜裆布',
+    'ラバースーツ','橡胶紧身衣',
     '腹筋','腹肌',
     'ㄋㄟㄋㄟ','胸部',
     '金的','捣蛋',
@@ -52,14 +53,20 @@ function recheck(){
 }
 function init(){ // call once when start loading page
     if(ft('body').length==0) return;
-    main_do();
+    main_daemon();
     //inited=true; //
 }
 function load(){ // call once when loaded page
     if(document.readyState.toLowerCase()=='complete'){
-        main_do();// write code here
+        main_daemon();// write code here
         return true;
     }
+}
+var daemonLauncher;
+function main_daemon(){
+    if(daemonLauncher) return;
+    daemonLauncher = setInterval(main_do, 3000);
+    main_do();
 }
 function main_do(){
     tagTranslate_illust(); // 个人空间的作品列表页面的标签
@@ -68,13 +75,13 @@ function main_do(){
     tagTranslate_addBookmark(); // 添加收藏时的可选择标签
     tagTranslate_member_tag_all();
     detailTranslate_illust();
+    trans_comment_button();
 }
-// ----- （接近全站的）标签分界线
+// ========== 作品页面（单图预览和评论区） 以下
 function tagTranslate_illust_single(){
     if(location.pathname != '/member_illust.php')return;
-    var tags=ft('footer');
+    var tags=$$('figcaption footer>ul>li');
     if(tags.length==0)return;
-    tags=tags[0].childNodes[0].childNodes;
     for(var li=0;li<tags.length;li++){
         var c=tags[li].childNodes,
             tt=tagDict(c[0].innerText);
@@ -85,14 +92,97 @@ function tagTranslate_illust_single(){
         }
     }
 }
+// ----- 作品页标题和说明 以下
+var ID_TRANSLATION_SOURCE='leorchn_icon_google_translate', ICON_TRANSLATION_SOURCE='https://translate.google.cn/favicon.ico',
+    ID_TRANSLATED_TITLE = 'leorchn_translated_title',
+    ID_TRANSLATED_DESC = 'leorchn_translated_desc',
+    block_detail_root;
+function detailTranslate_illust(){
+    if(location.pathname != '/member_illust.php')return;
+    if(!location.href.includes('mode=medium'))return;
+    var detail_block_post_time = $('figure>figcaption div[title]');
+    if(!detail_block_post_time) return;
+    block_detail_root = detail_block_post_time.parentElement;
+    if(!fv(ID_TRANSLATION_SOURCE)){
+        var img=ct('img'); img.id=ID_TRANSLATION_SOURCE; img.src=ICON_TRANSLATION_SOURCE; img.style.cssText='width:24px; float:right';
+        block_detail_root.insertBefore(img, block_detail_root.children[0]);
+    }
+    trans_title();
+    if(!fv(ID_TRANSLATED_DESC))trans_desc();
+}
+function trans_title(){ // 作品标题
+    var p=$('figcaption div>h1'), d=fv(ID_TRANSLATED_TITLE);
+    if(!p) return;
+    if(d){
+        if(d.title == p.innerText) return;
+        d.parentElement.remove();
+        try{ fv(ID_TRANSLATED_DESC).remove(); }catch(e){}
+        d = undefined;
+    }
+    if(!d){ // 因为标题块没有双层嵌套，二次读取会导致缓存文字块被误翻译
+        var q = ct('h1'); d = trans_create_block('');
+        q.className = p.className;
+        d.id=ID_TRANSLATED_TITLE; d.title=p.innerText;
+        q.appendChild(d); p.parentElement.insertBefore(q, p.nextElementSibling);
+    }
+    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_TITLE));
+}
+function trans_desc(){ // 作品描述
+    var p=$('figcaption div>h1+div>div');
+    if(!p) return;
+    if(!fv(ID_TRANSLATED_DESC)){
+        var d = trans_create_block('')
+        d.id=ID_TRANSLATED_DESC;
+        p.parentElement.appendChild(d);
+    }
+    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_DESC));
+}
+// ----- 评论区翻译按钮 以下
+var ID_COMMENT_TRANSLATE_TRIGGER = 'leorchn_comment_translate_trigger',
+    ID_COMMENT_TRANSLATION_BLOCK = 'leorchn_comment_translation_block';
+function trans_comment_button(){
+    var p=$$('article section li div>span+span+span');
+    for(var i=0;i<p.length;i++){
+        var parent = p[i].parentElement;
+        if(parent.getElementsByClassName(ID_COMMENT_TRANSLATE_TRIGGER).length == 0){
+            var d=ct('span', '翻译');
+            d.className=p[i].className + ' ' + ID_COMMENT_TRANSLATE_TRIGGER;
+            d.style.marginLeft='16px';
+            d.onclick=function(){
+                var _this=this,
+                    commentRoot=this.parentElement.previousElementSibling;
+                if(commentRoot.getElementsByClassName(ID_COMMENT_TRANSLATION_BLOCK).length == 0){
+                    var tb = trans_create_block('')
+                    tb.className = ID_COMMENT_TRANSLATION_BLOCK;
+                    commentRoot.appendChild(tb);
+                }
+                googleTranslateProxy(commentRoot.children[0].innerText, commentRoot.getElementsByClassName(ID_COMMENT_TRANSLATION_BLOCK)[0]);
+            }
+            parent.appendChild(d);
+        }
+    }
+}
+// ========== 作品页面（单图预览和评论区） 以上
+// ========== 自己和其他画师空间 以下
+// ----- 主页（显示全部作品、筛选其中一个标签）
 function tagTranslate_illust(){
     if(location.pathname != '/member_illust.php')return;
-    tagTranslate_mode_tagCloud();
+    var tags=$$('div>nav+div>div>div>ul>li');
+    if(tags.length==0)return;
+    for(var li=0;li<tags.length;li++){
+        var c=tags[li].children,
+            tt=tagDict(c[0].innerText);
+        if(tt){
+            c[0].innerText=tt;
+        }
+    }
 }
+// ----- 所有已加心的作品 页面
 function tagTranslate_bookmark(){
     if(location.pathname != '/bookmark.php')return;
     tagTranslate_mode_tagCloud();
 }
+// ----- 所有绘制的作品包含的标签（包含频率降序）
 function tagTranslate_member_tag_all(){
     if(location.pathname != '/member_tag_all.php')return;
     tagTranslate_mode_tagCloud();
@@ -111,20 +201,7 @@ function tagTranslate_member_tag_all(){
         }
     }
 }
-function tagTranslate_mode_tagCloud(){
-    var tags=fc('tagCloud');
-    if(tags.length==0)return;
-    tags=tags[0].childNodes;
-    for(var li=0;li<tags.length;li++){
-        try{
-            if(tags[li].className.includes('level0')) continue;
-        }catch(e){ continue; }
-        tags[li].style.display='inline-block';
-        var c=tags[li].childNodes[0].childNodes,
-            tt=tagDict(c[0].nodeValue);
-        if(tt) c[0].nodeValue=tt;
-    }
-}
+// ----- 加心/编辑心 页面
 function tagTranslate_addBookmark(){
     if(location.pathname != '/bookmark_add.php')return;
     var tags=fc('tag-cloud');
@@ -141,66 +218,32 @@ function tagTranslate_addBookmark(){
         }
     }
 }
+// ========== 自己和其他画师空间 以上
+// ----- 模板：标签云
+function tagTranslate_mode_tagCloud(){
+    var tags=fc('tagCloud');
+    if(tags.length==0)return;
+    tags=tags[0].childNodes;
+    for(var li=0;li<tags.length;li++){
+        try{
+            if(tags[li].className.includes('level0')) continue;
+        }catch(e){ continue; }
+        tags[li].style.display='inline-block';
+        var c=tags[li].childNodes[0].childNodes,
+            tt=tagDict(c[0].nodeValue);
+        if(tt) c[0].nodeValue=tt;
+    }
+}
+// ----- 标签 字典翻译
 function tagDict(origin){
     for(var i=0;i<tag_trans.length;i+=2)
         if(origin==tag_trans[i])
             return tag_trans[i+1];
 }
-// ----- 作品页标题和说明分界线
-function detailTranslate_illust(){
-    if(location.pathname != '/member_illust.php')return;
-    if(!location.href.includes('mode=medium'))return;
-    var tags=ft('footer');
-    if(tags.length==0 || fv('icon_google_translate'))return;
-    tags=tags[0].parentNode;
-    var img=ct('img');
-    img.id='icon_google_translate';
-    img.src='https://translate.google.cn/favicon.ico';
-    img.style.cssText='width:24px;float:right';
-    tags.childNodes[0].appendChild(img);
-    img.onclick=function(){}
-    trans_launcher=img;
-    if(!stat_title) trans_title();
-    if(!stat_desc) trans_desc();
-}
-var trans_launcher;
-var stat_title,
-    stat_desc;
-function trans_title(){
-    stat_title=true;
-    var p=trans_launcher.parentNode;
-    googleTranslate(p.innerText,
-      function(r){
-        if(!r.responseText || r.responseText.length<20){
-            stat_title=false;
-            trans_title();
-            return;
-        }
-        trans_launcher.parentNode.appendChild(
-            trans_create_block(r.responseText)
-        );
-      }
-    );
-}
-function trans_desc(){
-    stat_desc=true;
-    var p=trans_launcher.parentNode.parentNode.childNodes[1];
-    googleTranslate(p.innerText,
-      function(r){
-        if(!r.responseText || r.responseText.length<20){
-            stat_desc=false;
-            trans_desc();
-            return;
-        }
-        trans_launcher.parentNode.parentNode.childNodes[1].appendChild(
-            trans_create_block(r.responseText)
-        );
-      }
-    );
-}
-function trans_create_block(oriText){
-    var n=ct('p');
-    n.innerText=googleTranslate_get(oriText);
+// ----- 创建和编辑外部翻译块
+function trans_create_block(oriText, existsBlock){
+    var n=existsBlock? existsBlock: ct('p');
+    n.innerText=oriText? googleTranslate_get(oriText): '翻译中';
     n.style.backgroundColor='#d0ffd0';
     return n;
 }
@@ -208,10 +251,18 @@ function trans_create_block(oriText){
 function fv(id){return document.getElementById(id);}
 function ft(tag){return document.getElementsByTagName(tag);}
 function fc(cname){return document.getElementsByClassName(cname);}
-function ct(tag){return document.createElement(tag);}
+function ct(tag, t){var d=document.createElement(tag); if(t)d.innerText=t; return d;}
+function $(s){return document.querySelector(s);}
+function $$(s){return document.querySelectorAll(s);}
 function msgbox(msg){alert(msg);}
 function inputbox(title,defalt){return prompt(title,defalt);}
 function pl(s){console.log(s);}
+function googleTranslateProxy(origText, postTo){
+    googleTranslate(origText, function(r){
+        if(!r.responseText || r.responseText.length<20) if(googleTranslateProxy(origText, postTo) || true) return;
+        trans_create_block(r.responseText, postTo);
+    });
+}
 function googleTranslate_get(origin){
     return new RegExp('<div\\s.{0,15}class=\\"t0\\".{0,15}>(.*)<\\/div><f').exec(origin)[1];
 }
