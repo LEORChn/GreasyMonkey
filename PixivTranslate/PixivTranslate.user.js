@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1
+// @version      1.1.1
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -141,7 +141,7 @@ function trans_desc(){ // 作品描述
 var ID_COMMENT_TRANSLATE_TRIGGER = 'leorchn_comment_translate_trigger',
     ID_COMMENT_TRANSLATION_BLOCK = 'leorchn_comment_translation_block';
 function trans_comment_button(){
-    var p=$$('article section li div>span+span+span');
+    var p=$$('main section li div>span+span+span');
     for(var i=0;i<p.length;i++){
         var parent = p[i].parentElement;
         if(parent.getElementsByClassName(ID_COMMENT_TRANSLATE_TRIGGER).length == 0){
