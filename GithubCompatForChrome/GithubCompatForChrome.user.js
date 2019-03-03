@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.2.1
+// @version      1.2.2
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -119,8 +119,11 @@ function fixLanguageDetail(){
     if(t) t.onclick=function(){ if(p) if(!isCspDisabled) if(hasClass(p,c)) removeClass(p,c); else addClass(p,c); }
 }
 function fixCommitDetail(){
-    var t=$('include-fragment.commit-loader>div.loader-error');
-    if(t) repItsSrc(t.parentElement);
+    var t=$('include-fragment.commit-loader .loader-error');
+    if(t){
+        while(t.nodeName != 'INCLUDE-FRAGMENT') t=t.parentElement;
+        repItsSrc(t);
+    }
 }
 function fixCommitDetailButton(){
     var t=$('button.ellipsis-expander');
@@ -147,6 +150,7 @@ function insertItsSrc(t,repMode){
 var baseUrl=
     'https://assets-cdn.github.com/assets/';
     //'/LEORChn/GreasyMonkey/raw/master/GithubCompatForChrome/lib/';
+    //'https://leorchn.github.io/archive/assets-cdn.github.com/assets/';
 var p_a, p_b, p_c, p_d, definderPhase = 0;
 function jsCompat(){ // 经典的入口。。
     switch(definderPhase){
@@ -159,6 +163,7 @@ function jsCompat(){ // 经典的入口。。
                 definderPhase++;
                 jsCompat();
             }
+            //addjs(baseUrl+'github-a62aa302e53c46b4501ee9c8c591ed18.js');
             addjs(baseUrl+'github-de3df06b3ffbf7fc82dc1aa0aacf2faf.js');
             return; // 这个地方只要等 github.js 调用一次就可以触发下一步操作
         case 1:
