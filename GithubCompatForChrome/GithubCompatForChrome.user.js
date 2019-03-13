@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.2.2
+// @version      1.2.3
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -77,6 +77,16 @@ function unblockButtons(){
     var t=$$('[disabled]');
     for(var p=0; p<t.length; p++) t[p].removeAttribute('disabled');
 }
+function fixCommitDetailButton(){ // 这个因为仓库页面和全局搜索页面都有，所以升级为通用
+    var t=$$('button.ellipsis-expander'),
+        p=$$('.commit-desc');
+    for(var i=0; i<t.length; i++) fixCommitDetailButtonImpl(t[i], p[i]);
+}
+function fixCommitDetailButtonImpl(btn, desc){
+    btn.onclick=function(){
+        if(desc) desc.style.display= desc.style.display == ''? 'block': ''; // 本身会被class隐藏，所以空白时隐藏，block时显示
+    }
+}
 //============== 通用界面 以上
 //============== 首页 以下
 function fixDashboardFeed(){
@@ -110,6 +120,7 @@ function fixWatcherInline(){
     if(t) t.style.display='table-row-group';
 }
 //------ 仓库 > code
+// fixCommitDetailButton 因为仓库页面和全局搜索页面都有，所以升级为通用
 function fixBranchSwitch(){
     var t=$('details>summary.select-menu-button+details-menu[src]');
     if(t) insertItsSrc(t);
@@ -124,10 +135,6 @@ function fixCommitDetail(){
         while(t.nodeName != 'INCLUDE-FRAGMENT') t=t.parentElement;
         repItsSrc(t);
     }
-}
-function fixCommitDetailButton(){
-    var t=$('button.ellipsis-expander');
-    if(t) t.onclick=function(){ var p=$('.commit-desc'); if(p) p.style.display= p.style.display == ''? 'block': ''; } // 本身会被class隐藏所以跟上面那个反着来
 }
 //------ 仓库 > Insights > Traffic
 function fixPopularContent(){
