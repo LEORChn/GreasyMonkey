@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.3
+// @version      1.1.4
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -120,34 +120,57 @@ function detailTranslate_illust(){
         block_detail_root.insertBefore(img, block_detail_root.children[0]);
     }
     trans_title();
-    if(!fv(ID_TRANSLATED_DESC))trans_desc();
+    trans_desc();
 }
 function trans_title(){ // 作品标题
     var p=$('figcaption div>h1'), d=fv(ID_TRANSLATED_TITLE);
     if(!p) return;
     if(d){
-        if(d.title == p.innerText) return;
+        if(d.title == d.innerText){ // 标题块中缓存的原文与自身内容一致，表示翻译完成但与原文一致或无法翻译
+            p.style.backgroundColor='#c0e0ff'; // 译文等于原文自身，给原文块加蓝底表示无需翻译
+            d.style.display='none';
+        }
+        if(d.title == p.innerText) return; // 标题块中缓存的与原文一致，表示页面没有变化，取消翻译
+        p.style.backgroundColor=''; // 页面有变化，如果修改过蓝底的就重置它
         d.parentElement.remove();
-        try{ fv(ID_TRANSLATED_DESC).remove(); }catch(e){}
         d = undefined;
     }
+    /* 要解释为什么不能在这两个if之间用else连起来，先看看进入下一个if的两种情况：
+       1.新建页面，没有找到翻译块
+       2.页面更改，并进入了上一个if。并且没有触碰到return，导致d被设为undefined
+       很明显，2号情况决定了这俩if不能用else连起来
+    */
     if(!d){ // 因为标题块没有双层嵌套，二次读取会导致缓存文字块被误翻译
         var q = ct('h1'); d = trans_create_block('');
         q.className = p.className;
-        d.id=ID_TRANSLATED_TITLE; d.title=p.innerText;
-        q.appendChild(d); p.parentElement.insertBefore(q, p.nextElementSibling);
+        d.id=ID_TRANSLATED_TITLE;
+        d.title=p.innerText; // 标题块中缓存原文
+        q.appendChild(d);
+        p.parentElement.insertBefore(q, p.nextElementSibling);
     }
-    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_TITLE));
+    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_TITLE), trans_title);
 }
 function trans_desc(){ // 作品描述
-    var p=$('figcaption div>h1+div>div');
+    var p=$('figcaption div>h1+div>div'), d=fv(ID_TRANSLATED_DESC);
     if(!p) return;
-    if(!fv(ID_TRANSLATED_DESC)){
-        var d = trans_create_block('')
+    if(d){
+        if(p.innerText.replace(/\s/g,'') == d.innerText.replace(/\s/g,'')){ // 标题块中缓存的原文与自身内容一致，表示翻译完成但与原文一致或无法翻译
+            p.style.backgroundColor='#c0e0ff'; // 译文等于原文自身，给原文块加蓝底表示无需翻译
+            d.style.display='none';
+        }
+        if(d.title == p.innerText) return; // 标题块中缓存的与原文一致，表示页面没有变化，取消翻译
+        p.style.backgroundColor=''; // 页面有变化，如果修改过蓝底的就重置它
+        d.remove();
+        d = undefined;
+    }
+    // 这里还用复制一遍解释么，标题块那个方法里有过了
+    if(!d){
+        d = trans_create_block('')
         d.id=ID_TRANSLATED_DESC;
+        d.title=p.innerText; // 标题块中缓存原文
         p.parentElement.appendChild(d);
     }
-    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_DESC));
+    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_DESC), trans_desc);
 }
 // ----- 评论区翻译按钮 以下
 var ID_COMMENT_TRANSLATE_TRIGGER = 'leorchn_comment_translate_trigger',
@@ -255,7 +278,7 @@ function tagDict(origin){
 // ----- 创建和编辑外部翻译块
 function trans_create_block(oriText, existsBlock){
     var n=existsBlock? existsBlock: ct('p');
-    n.innerText=oriText? googleTranslate_get(oriText): '翻译中';
+    n.innerHTML=oriText? googleTranslate_get(oriText): '翻译中';
     n.style.backgroundColor='#d0ffd0';
     return n;
 }
@@ -269,10 +292,20 @@ function $$(s){return document.querySelectorAll(s);}
 function msgbox(msg){alert(msg);}
 function inputbox(title,defalt){return prompt(title,defalt);}
 function pl(s){console.log(s);}
-function googleTranslateProxy(origText, postTo){
+function googleTranslateProxy(origText, postTo, invokeWhenFinish){
+    /* 如果此处判定成功则是原文过长，感觉没有翻译成功的希望，暂时隐藏它。
+       此处的 4500字节 = 500亚洲文字 或者 4500英文字母和数字
+       空格和某些需要转义的字符和标点每个占 3字节
+       亚洲文字及标点每个占 9字节。例如“我”这个字转义后是 %E6%88%91 即占用 9字节
+    */
+    if(encodeURI(origText).length > 4500){
+        postTo.style.display = 'none';
+    }
     googleTranslate(origText, function(r){
         if(!r.responseText || r.responseText.length<20) if(googleTranslateProxy(origText, postTo) || true) return;
         trans_create_block(r.responseText, postTo);
+        if(postTo.style.display == 'none') postTo.style.display = ''; // 已翻译完成，取消隐藏（如果之前觉得这个翻译块没有翻译成功的希望并被隐藏的话）
+        if(invokeWhenFinish) try{ invokeWhenFinish(); }catch(e){}
     });
 }
 function googleTranslate_get(origin){
