@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.2
+// @version      1.1.3
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
 // @run-at       document-start
 // @grant        GM_xmlhttpRequest
+// @connect      translate.google.cn
 // ==/UserScript==
 var tag_trans=[
 // 图型类
