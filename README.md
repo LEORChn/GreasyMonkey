@@ -15,6 +15,11 @@ Android 开发者谷歌官方网站自动跳转到无需穿墙的镜像站。
 
 <a target="_blank" href="https://greasyfork.org/scripts/369095">Click here visit Greasy Fork.<br>点击此处在 Greasy Fork 浏览该脚本</a>
 
+## 我的推特工具箱
+隐藏转推和视频兼容修复。
+
+<a target="_blank" href="https://greasyfork.org/scripts/381019">Click here visit Greasy Fork.<br>点击此处在 Greasy Fork 浏览该脚本</a>
+
 ## Pixiv 辅助翻译
 现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 
