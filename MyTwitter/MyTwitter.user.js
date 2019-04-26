@@ -61,6 +61,10 @@ function doAddVideoEntry(){
         while(!curNode.hasAttribute('data-permalink-path') && curNode != document.body) curNode = curNode.parentNode;
         if(curNode == document.body) return;
         curTweet = encodeURIComponent('https://twitter.com/'+curNode.getAttribute('data-permalink-path'));
+        /*	- more tools:
+        		https://download-twitter-videos.com/
+        		https://mydowndown.com/twitter
+        */
         http2('post', 'https://download-twitter-videos.com/zh/core/ajax.php', 'host=twitter&url='+curTweet, function(){
             var res=this.responseText,
                 reg=new RegExp('http[^>]*\\.mp4[0-9a-zA-Z\?=%]{0,}','g'),
