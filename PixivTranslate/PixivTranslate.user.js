@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.4
+// @version      1.1.5
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -14,10 +14,13 @@ var tag_trans=[
     '漫画','漫画',
     'うごイラ','动图',
     '厚塗り','多层上色',
+    'オリジナル','原创',
 // 角色类型类
     'UTAU獣人','兽人虚拟歌手',
     'ケモノ','野兽',
     'wolf','狼',
+    'オオカミ','狼',
+    'ハスキー','哈士奇',
     'kemono','毛怪',
     'furry','兽人',
     '獣人','兽人', // 这个是日文的
@@ -81,13 +84,38 @@ function main_daemon(){
     main_do();
 }
 function main_do(){
-    tagTranslate_illust(); // 个人空间的作品列表页面的标签
-    tagTranslate_illust_single(); // 作品页面的标签
-    tagTranslate_bookmark(); // 个人空间的收藏列表页面的标签
-    tagTranslate_addBookmark(); // 添加收藏时的可选择标签
-    tagTranslate_member_tag_all();
-    detailTranslate_illust();
-    trans_comment_button();
+    tagTranslate_illust();             // 个人空间 > 作品列表页面 - 标签
+    tagTranslate_illust_single();      // 作品页面 - 标签
+    tagTranslate_bookmark();           // 个人空间 > 我的收藏页面 - 标签
+    tagTranslate_addBookmark();        // 作品页面 > 编辑心页面 - 添加收藏时的可选择标签
+    tagTranslate_member_tag_all();     // 个人空间 - 所有绘制的作品包含的标签（包含频率降序）
+    detailTranslate_illust();          // 作品页面 - 自动翻译作品标题和简介
+    button_trans_comment();            // 作品页面 - 添加评论翻译的按钮
+    unblock_popular_illust_overlay();  // 搜索页面 - 有作品在“查看更多「xxx」的热门作品”面板的下方，点击该面板提示开通会员，用这个隐藏会员面板
+    popup_popular_order();             // 【预想】搜索页面 - 突破会员限制
+    delete_illust_expanded_ad();       // 作品页面 - 在展开多页作品后最底部会出现广告，删除它以节省滚动操作
+}
+// ========== 功能性
+function unblock_popular_illust_overlay(){
+    var v = $$('.popular-introduction-overlay');
+    for(var i=0; i<v.length; i++) v[i].style.display = 'none';
+}
+function delete_illust_expanded_ad(){
+    var v = $('main section div iframe');
+    if(v) v.remove();
+}
+function popup_popular_order(){
+    var v = $('.require-premium-popular_d'),
+        v2 = $('._popular-search-select-popup-container');
+    if(v && v2){
+        v.onmousemove = v2.onmousemove = function(){
+            v2.style.setProperty('display', 'block', 'important');
+            v2.style.marginTop = '-5px';
+        }
+        v.onmouseleave = v2.onmouseleave = function(){
+            v2.style.display = '';
+        }
+    }
 }
 // ========== 作品页面（单图预览和评论区） 以下
 function tagTranslate_illust_single(){
@@ -175,7 +203,7 @@ function trans_desc(){ // 作品描述
 // ----- 评论区翻译按钮 以下
 var ID_COMMENT_TRANSLATE_TRIGGER = 'leorchn_comment_translate_trigger',
     ID_COMMENT_TRANSLATION_BLOCK = 'leorchn_comment_translation_block';
-function trans_comment_button(){
+function button_trans_comment(){
     var p=$$('main section li div>span+span+span');
     for(var i=0;i<p.length;i++){
         var parent = p[i].parentElement;
