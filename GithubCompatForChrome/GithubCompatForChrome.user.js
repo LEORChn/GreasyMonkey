@@ -2,7 +2,7 @@
 // @name         Github Compat For Chrome
 // @name:zh-CN   Github兼容性优化，Chrome版
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.2.3
+// @version      1.2.4
 // @description  Fix Github problem while using Chrome if needed.
 // @description:zh-CN 优化Github在Chrome浏览器上的使用体验和兼容性，如果需要这么做。
 // @author       LEORChn
@@ -58,7 +58,9 @@ function load(){ // call once when loaded page
         fixWatcherInline();
         fixBranchSwitch();
         fixLanguageDetail();
+        fixPullRequest();
         fixPopularContent();
+        fixLoadDeletedFileDiff();
         whateverDaemon();
         launchedNotice();
         jsCompat();
@@ -109,7 +111,7 @@ function fixDashboardFeedNext(){
 //------ 自己资料
 function fixSetPinnedRepositories(){
     var t=$('details>summary+details-dialog>include-fragment.octocat-spinner');
-    if(t){ t.setAttribute('src', t.parentElement.parentElement.getAttribute('data-deferred-details-content-url')); repItsSrc(t); }
+    if(t){ t.setAttribute('src', t.parentElement.getAttribute('src')); repItsSrc(t); }
 }
 
 //============== 个人资料界面 以上
@@ -119,7 +121,7 @@ function fixWatcherInline(){
     var t=$('ul.pagehead-actions>li>form');
     if(t) t.style.display='table-row-group';
 }
-//------ 仓库 > code
+//------ 仓库 > Code
 // fixCommitDetailButton 因为仓库页面和全局搜索页面都有，所以升级为通用
 function fixBranchSwitch(){
     var t=$('details>summary.select-menu-button+details-menu[src]');
@@ -134,6 +136,70 @@ function fixCommitDetail(){
     if(t){
         while(t.nodeName != 'INCLUDE-FRAGMENT') t=t.parentElement;
         repItsSrc(t);
+    }
+}
+function fixPullRequest(){
+    var t=$('.pre-mergability>poll-include-fragment');
+    if(t) insertItsSrc(t);
+    t=$('div.compare-pr-placeholder>button.btn-primary'); // “Create pull request” 绿色按钮
+    if(t){ // 必须要查找到该表单才能继续
+        t.onclick = function(){
+            var p = this.parentElement;
+            p.style.display = 'none';
+            $('form#new_pull_request').style.display = 'block';
+        }
+        var f = $('form#new_pull_request'),
+            writeBtn = f.getElementsByClassName('write-tab js-write-tab')[0],
+            prevBtn = f.getElementsByClassName('preview-tab js-preview-tab')[0],
+            writeUI = f.getElementsByTagName('file-attachment')[0],
+            prevUI = f.getElementsByClassName('preview-content')[0],
+            writeArea = f.getElementsByTagName('textarea')[0],
+            prevArea = f.getElementsByClassName('comment-body js-preview-body')[0],
+            prevUrl = writeUI.parentElement.getAttribute('data-preview-url'),
+            prevToken = writeUI.parentElement.getAttribute('data-preview-authenticity-token'),
+            cleanTabSelection = function(){
+                writeBtn.className = writeBtn.className.replace(/(^|\s)selected(\s|$)/, '');
+                prevBtn.className = prevBtn.className.replace(/(^|\s)selected(\s|$)/, '');
+            },
+            hideUIs = function(){
+                writeUI.style.display = prevUI.style.display = 'none';
+            };
+
+        writeBtn.onclick = prevBtn.onclick = function(){
+            cleanTabSelection();
+            this.className += ' selected';
+            hideUIs();
+            switch(this){
+                case writeBtn:
+                    writeUI.style.display = 'block';
+                    break;
+                case prevBtn:
+                    prevUI.style.display = 'block';
+                    prevArea.innerHTML = '正在加载预览，请稍等...';
+                    http2('post', prevUrl, 'text='+encodeURIComponent(writeArea.value)+'&authenticity_token='+encodeURIComponent(prevToken), function(){
+                        prevArea.innerHTML = this.responseText;
+                    });
+                    break;
+            }
+        }
+
+    }
+}
+//------ 仓库 > Code > Commit
+function fixLoadDeletedFileDiff(){
+    var t=$$('include-fragment.js-diff-entry-loader button.load-diff-button');
+    if(t.length > 0) for(var i = 0; i < t.length; i++) t[i].onclick = function(){
+        this.style.backgroundColor = 'rgba(0,0,0,.5)';
+        this.setAttribute('disabled', 'true')
+        var currentElement = this;
+        do{
+            currentElement = currentElement.parentElement;
+            if(currentElement.hasAttribute('data-fragment-url')){
+                currentElement.setAttribute('src', currentElement.getAttribute('data-fragment-url'));
+                insertItsSrc(currentElement);
+                break;
+            }
+        }while(currentElement.nodeName != 'BODY');
     }
 }
 //------ 仓库 > Insights > Traffic
@@ -210,6 +276,7 @@ function http2(method,url,formed,dofun,dofail){
 	x.open(method.toUpperCase(),url,true);
 	x.onload=dofun;
 	x.ontimeout=x.onerror= dofail? dofail: null;
+    x.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
 	x.send(formed?formed:'');
 }
 function addjs(url,async){
