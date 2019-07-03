@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.5
+// @version      1.1.6
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -30,11 +30,12 @@ var tag_trans=[
     'ケモホモ','兽人同性向',
     'ケモ交尾','兽性',
 // 作品名称类
-    '東京放課後サモナーズ','东京放课后召唤师',
+    '東京放課後サモナーズ','东京放课后召唤师', // 我在2018年9月初玩过，几号来着忘了
     '放サモ','东放',
     'housamo','东放',
-    'あらしのよるに','翡翠森林狼与羊（暴风雨之夜）',
+    'あらしのよるに','翡翠森林狼与羊（暴风雨之夜）', // 我在2019年3月初左右观看完了这个动画
     'ひみつのともだち','秘密的朋友',
+    'ゼロから始める魔法の書','从零开始的魔法书', // 我在2019年5月8日14时观看完了这个动画，17时35分开始观看第12话，17时58分观看完毕撒花
 // 人物名称类
     '狼音アロ','狼音阿罗',
     'モリタカ','犬塚戍孝',
@@ -44,6 +45,7 @@ var tag_trans=[
     'ガルム','加姆',
     'ノーマッド(放サモ)','诺曼德（东放）', // 东京放课后里的虎兽人所用的化名
     '主5','5号主人公（东放）',
+    '獣の傭兵','佣兵（零书）',
 // 着装类
     'ふんどし','兜裆布',
     '褌','兜裆布',
@@ -140,7 +142,7 @@ var ID_TRANSLATION_SOURCE='leorchn_icon_google_translate', ICON_TRANSLATION_SOUR
 function detailTranslate_illust(){
     if(location.pathname != '/member_illust.php')return;
     if(!location.href.includes('mode=medium'))return;
-    var detail_block_post_time = $('figure>figcaption div[title]');
+    var detail_block_post_time = $('figcaption div[title]');
     if(!detail_block_post_time) return;
     block_detail_root = detail_block_post_time.parentElement;
     if(!fv(ID_TRANSLATION_SOURCE)){
