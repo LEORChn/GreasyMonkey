@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Pixiv 辅助翻译
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.1.6
+// @version      1.1.7
 // @description  现已支持标签TAG、作品详情页对标题和说明，以及评论区翻译！
 // @author       LEORChn
 // @include      *://www.pixiv.net/*
@@ -98,15 +98,15 @@ function main_do(){
     delete_illust_expanded_ad();       // 作品页面 - 在展开多页作品后最底部会出现广告，删除它以节省滚动操作
 }
 // ========== 功能性
-function unblock_popular_illust_overlay(){
+function unblock_popular_illust_overlay(){ // 搜索页面 热门作品提示
     var v = $$('.popular-introduction-overlay');
     for(var i=0; i<v.length; i++) v[i].style.display = 'none';
 }
-function delete_illust_expanded_ad(){
+function delete_illust_expanded_ad(){ // 作品页面 广告
     var v = $('main section div iframe');
     if(v) v.remove();
 }
-function popup_popular_order(){
+function popup_popular_order(){ // 【预想测试】【失败】突破会员限制实现某些功能
     var v = $('.require-premium-popular_d'),
         v2 = $('._popular-search-select-popup-container');
     if(v && v2){
@@ -119,9 +119,9 @@ function popup_popular_order(){
         }
     }
 }
-// ========== 作品页面（单图预览和评论区） 以下
+// ========== 作品页面标签（单图预览和评论区） 以下
 function tagTranslate_illust_single(){
-    if(location.pathname != '/member_illust.php')return;
+    if(!location.pathname.startsWith('/artworks/')) return;
     var tags=$$('figcaption footer>ul>li');
     if(tags.length==0)return;
     for(var li=0;li<tags.length;li++){
@@ -140,8 +140,8 @@ var ID_TRANSLATION_SOURCE='leorchn_icon_google_translate', ICON_TRANSLATION_SOUR
     ID_TRANSLATED_DESC = 'leorchn_translated_desc',
     block_detail_root;
 function detailTranslate_illust(){
-    if(location.pathname != '/member_illust.php')return;
-    if(!location.href.includes('mode=medium'))return;
+    if(!location.pathname.startsWith('/artworks/')) return;
+    // if(!location.href.includes('mode=medium')) return;
     var detail_block_post_time = $('figcaption div[title]');
     if(!detail_block_post_time) return;
     block_detail_root = detail_block_post_time.parentElement;
@@ -200,7 +200,7 @@ function trans_desc(){ // 作品描述
         d.title=p.innerText; // 标题块中缓存原文
         p.parentElement.appendChild(d);
     }
-    googleTranslateProxy(p.innerText, fv(ID_TRANSLATED_DESC), trans_desc);
+    googleTranslateProxy(p.innerText.replace(/\n/g, CRLF), fv(ID_TRANSLATED_DESC), trans_desc);
 }
 // ----- 评论区翻译按钮 以下
 var ID_COMMENT_TRANSLATE_TRIGGER = 'leorchn_comment_translate_trigger',
@@ -305,10 +305,11 @@ function tagDict(origin){
         if(origin==tag_trans[i])
             return tag_trans[i+1];
 }
+var CRLF = '<br>', CRLF_REGEX_ESCAPE = '&lt;br&gt;';
 // ----- 创建和编辑外部翻译块
 function trans_create_block(oriText, existsBlock){
     var n=existsBlock? existsBlock: ct('p');
-    n.innerHTML=oriText? googleTranslate_get(oriText): '翻译中';
+    n.innerHTML=oriText? googleTranslate_get(oriText).replace(new RegExp(CRLF_REGEX_ESCAPE, 'g'), CRLF): '翻译中';
     n.style.backgroundColor='#d0ffd0';
     return n;
 }
