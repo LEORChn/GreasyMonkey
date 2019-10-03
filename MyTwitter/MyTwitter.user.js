@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         我的推特工具箱
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.1
+// @version      1.0.2
 // @description  隐藏转推和视频兼容修复。
 // @author       LEORChn
 // @include      *://twitter.com/*
@@ -17,24 +17,42 @@ function onIntervalFunction(){
     doAddEntry();
     doHideRetweet();
     doAddVideoEntry();
+    adaptDoublePhotoHeight();
+    doFixImageView();
 }
 
 var ID_HIDE_RETWEET_ENTRY = 'leorchn_action_hide_retweet',
-    HIDE_RETWEET_ENABLED = false;
+    HIDE_RETWEET_ENABLED = false,
+    HIDE_RETWEET_ENABLED_V2019 = false;
 function doAddEntry(){
     if(fv(ID_HIDE_RETWEET_ENTRY)) return;
     var bar = $('.ProfileHeading-toggle');
-    if(!bar) return;
     var li = ct('li'), a = ct('a', '隐藏转推');
+    if(bar){ // 新布局，登录后强制启用的那种（不知道怎么返回旧布局，新布局真的用着太难过了）
+        li.className='ProfileHeading-toggleItem  u-textUserColor';
+        a.className='ProfileHeading-toggleLink js-nav';
+        a.onclick=function(){
+            this.parentNode.className='ProfileHeading-toggleItem  is-active';
+            this.outerHTML=this.innerText;
+            HIDE_RETWEET_ENABLED = true;
+        };
+        li.appendChild(a);
+    }else{ // 旧布局
+        bar = $('[aria-hidden]+div[role=tablist]');
+        if(!bar) return; // 真的不知道是什么布局了，return
+        li = bar.lastElementChild.cloneNode(true);
+        a = li.lastElementChild;
+        a.removeAttribute('href');
+        a.onclick=function(){
+            this.lastElementChild.style.color = 'rgb(29, 161, 242)';
+            HIDE_RETWEET_ENABLED = HIDE_RETWEET_ENABLED_V2019 = true;
+        };
+        var span = li;
+        while(span.lastElementChild != null) span = span.lastElementChild;
+        span.innerText = '隐藏转推';
+    }
     li.id = ID_HIDE_RETWEET_ENTRY;
-    li.className='ProfileHeading-toggleItem  u-textUserColor';
-    a.className='ProfileHeading-toggleLink js-nav';
-    a.onclick=function(){
-        this.parentNode.className='ProfileHeading-toggleItem  is-active';
-        this.outerHTML=this.innerText;
-        HIDE_RETWEET_ENABLED = true;
-    };
-    li.appendChild(a);
+
     bar.appendChild(li);
 }
 function doHideRetweet(){
@@ -44,6 +62,21 @@ function doHideRetweet(){
         while(retweets.length > 0)retweets[0].parentNode.parentNode.parentNode.parentNode.remove();
     }catch(e){
         pl(e);
+    }
+    if( ! HIDE_RETWEET_ENABLED_V2019) return;
+    var retweets19 = $$('article');
+    try{
+        for(var i=retweets19.length-1; i>=0; i--)
+            if(retweets19[i].childElementCount > 1 && retweets19[i].firstElementChild.innerText.includes('转推了')){
+                retweets19[i].lastElementChild.remove(); //retweets19[i].parentNode.parentNode.parentNode.remove();
+                var root = retweets19[i].parentNode.parentNode.parentNode;
+                root.appendChild(retweets19[i]);
+                root.firstElementChild.remove();
+                retweets19[i].outerHTML = '隐藏了一条转推。';
+            }
+    }catch(e){
+        pl(e);
+        pl(retweets19);
     }
 }
 //-----
@@ -61,9 +94,11 @@ function doAddVideoEntry(){
         while(!curNode.hasAttribute('data-permalink-path') && curNode != document.body) curNode = curNode.parentNode;
         if(curNode == document.body) return;
         curTweet = encodeURIComponent('https://twitter.com/'+curNode.getAttribute('data-permalink-path'));
+        var bgdiv = v.previousElementSibling; // background div 视频背景封面
+        if(bgdiv) bgdiv.style.webkitFilter = bgdiv.style.mozFilter = bgdiv.style.filter = 'blur(9px)';
         /*	- more tools:
-        		https://download-twitter-videos.com/
-        		https://mydowndown.com/twitter
+            https://download-twitter-videos.com/
+            https://mydowndown.com/twitter
         */
         http2('post', 'https://download-twitter-videos.com/zh/core/ajax.php', 'host=twitter&url='+curTweet, function(){
             var res=this.responseText,
@@ -77,12 +112,38 @@ function doAddVideoEntry(){
     v.onplay = function(){
         if(a) a.remove();
     }
-    v.onclick = function(){
+    v.onclick = function(e){
         if(v.duration == 0) return;
         if(v.paused) v.play(); else v.pause();
+        e.stopPropagation();
+    }
+}
+//-----
+function adaptDoublePhotoHeight(){
+    var a = $('.permalink-container .AdaptiveMedia');
+    if(a) a.style.maxHeight = '500%'; // 重置设置，突破界限
+
+    a = $$('.permalink-container .AdaptiveMedia-doublePhoto');
+    for(var i=0;i<a.length;i++){
+        a[i].style.lineHeight = 0; // 修改后的双图底部会多出一点点边框很难看
+        a[i].style.height = '100%'; // 重置掉原先固定的大小
+    }
+    a = $$('.permalink-container .AdaptiveMedia-doublePhoto img');
+    for(var b=0;b<a.length;b++){
+        a[b].style.top = a[b].style.left = 0; // 重置
+        a[b].style.height = ''; // 重置固定高度
+        a[b].style.position = 'static'; // 确保图片保持在边框里面
+        a[b].style.maxWidth = '100%'; // 限制双图宽度（横向扩展度）
     }
 }
 
+function doFixImageView(){
+    var t = $$('div[aria-label=上一个]');
+    if(t.lengh == 0) return;
+    for(var i=0; i<t.length; i++){
+        t[i].parentElement.style.position = 'static';
+    }
+}
 //----- my ezjs lib
 function fv(id){return document.getElementById(id);}
 function ft(tag){return document.getElementsByTagName(tag);}
