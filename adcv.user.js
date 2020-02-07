@@ -1,6 +1,6 @@
 // ==UserScript==
-// @name         Android Developer Chinese Version
-// @name:zh-CN   Android 开发者镜像站重定向
+// @name         Android 开发者镜像站重定向
+// @name:en      Android Developer Chinese Version
 // @namespace
 // @version      1.0
 // @description  Android 开发者谷歌官方网站自动跳转到无需穿墙的镜像站。

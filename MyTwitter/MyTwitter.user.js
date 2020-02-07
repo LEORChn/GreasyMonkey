@@ -2,7 +2,7 @@
 // @name         我的推特工具箱
 // @namespace    https://greasyfork.org/users/159546
 // @version      1.0.2
-// @description  隐藏转推和视频兼容修复。
+// @description  视频兼容修复。
 // @author       LEORChn
 // @include      *://twitter.com/*
 // @run-at       document-start
@@ -15,7 +15,7 @@
 })();
 function onIntervalFunction(){
     doAddEntry();
-    doHideRetweet();
+    //doHideRetweet(); // deprecated
     doAddVideoEntry();
     adaptDoublePhotoHeight();
     doFixImageView();
@@ -81,21 +81,42 @@ function doHideRetweet(){
 }
 //-----
 function doAddVideoEntry(){
-    var r=$('.PlayableMedia--video:only-child');
-    if(!r) return; else r=r.parentNode;
-    var v=ct('video'),
+    var idvt='LEORCHN_VIDEOPLAY_TRIGGER';
+    var r=$('.PlayableMedia--video:only-child'),
+        v=ct('video'),
         a=ct('a', '视频无法播放？点此解决');
+    if(fv(idvt)) return;
+    if(!r){
+        r = $('video');
+        if(!r) return;
+        var rootPadding = r.parentElement,
+            videoSlot, videoSlotPadding, videoHolderRoot;
+        videoSlot = videoSlotPadding = videoHolderRoot = null;
+        while(rootPadding.children.length <= 3){
+            videoHolderRoot = videoSlotPadding;
+            videoSlotPadding = videoSlot;
+            videoSlot = rootPadding;
+            rootPadding = rootPadding.parentElement;
+        }
+        v.id=idvt;
+        v.setAttribute('blur', 'v2');
+        a.setAttribute('data-permalink-path', location.pathname.substr(1)); // 适配旧版代码
+        r=videoSlotPadding;//.appendChild(a); // 适配旧版代码
+    }else{
+        r=r.parentNode;
+    }
+    a.style.color = 'rgb(27, 149, 224)';
     v.style.cssText='position:absolute; width:100%; height:100%; top:0; display:none';
     r.appendChild(v);
     r.appendChild(a);
     a.onclick=function(){
+        if(v.getAttribute('blur') == 'v2')
+            v.parentElement.children[0].style.cssText = '-webkit-filter:blur(20px); filter:blur(20px)';
         v.style.display='';
         var curTweet, curNode = this;
         while(!curNode.hasAttribute('data-permalink-path') && curNode != document.body) curNode = curNode.parentNode;
         if(curNode == document.body) return;
         curTweet = encodeURIComponent('https://twitter.com/'+curNode.getAttribute('data-permalink-path'));
-        var bgdiv = v.previousElementSibling; // background div 视频背景封面
-        if(bgdiv) bgdiv.style.webkitFilter = bgdiv.style.mozFilter = bgdiv.style.filter = 'blur(9px)';
         /*	- more tools:
             https://download-twitter-videos.com/
             https://mydowndown.com/twitter
