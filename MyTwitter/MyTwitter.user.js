@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         我的推特工具箱
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.2
+// @version      1.0.3
 // @description  视频兼容修复。
 // @author       LEORChn
 // @include      *://twitter.com/*
@@ -14,8 +14,8 @@
     setInterval(onIntervalFunction, 2000);
 })();
 function onIntervalFunction(){
-    doAddEntry();
-    //doHideRetweet(); // deprecated
+    //doAddEntry(); // 隐藏转推。不稳定，如有需要请自行取消注释
+    //doHideRetweet(); // 隐藏转推。不稳定，如有需要请自行取消注释
     doAddVideoEntry();
     adaptDoublePhotoHeight();
     doFixImageView();
@@ -64,16 +64,23 @@ function doHideRetweet(){
         pl(e);
     }
     if( ! HIDE_RETWEET_ENABLED_V2019) return;
-    var retweets19 = $$('article');
+    var tweetRoot, tweetRoot2, retweets19 = $$('article:not([isHideRetweet])'), alignH, retweetMarkRoot;
     try{
-        for(var i=retweets19.length-1; i>=0; i--)
-            if(retweets19[i].childElementCount > 1 && retweets19[i].firstElementChild.innerText.includes('转推了')){
-                retweets19[i].lastElementChild.remove(); //retweets19[i].parentNode.parentNode.parentNode.remove();
-                var root = retweets19[i].parentNode.parentNode.parentNode;
-                root.appendChild(retweets19[i]);
-                root.firstElementChild.remove();
-                retweets19[i].outerHTML = '隐藏了一条转推。';
+        for(var i=0; i<retweets19.length; i++){
+            alignH = retweets19[i].firstElementChild;
+            retweetMarkRoot = alignH.firstElementChild;
+            if(retweetMarkRoot.innerText.includes('转推了')){
+                tweetRoot2 = retweets19[i].parentNode;
+                tweetRoot = tweetRoot2.parentNode;
+                retweets19[i].setAttribute('isHideRetweet', '1');
+                var hidehint = ct('div', '隐藏了一条转推。');
+                hidehint.style.height = tweetRoot2.offsetHeight + 'px';
+                hidehint.className = 'LEORChn_HIDE_RETWEET_HINT';
+                tweetRoot2.style.display = 'none';
+                tweetRoot.appendChild(hidehint);
             }
+            pl('hide retweet is running');
+        }
     }catch(e){
         pl(e);
         pl(retweets19);
@@ -81,14 +88,18 @@ function doHideRetweet(){
 }
 //-----
 function doAddVideoEntry(){
-    var idvt='LEORCHN_VIDEOPLAY_TRIGGER';
     var r=$('.PlayableMedia--video:only-child'),
-        v=ct('video'),
-        a=ct('a', '视频无法播放？点此解决');
-    if(fv(idvt)) return;
+        pageType = 0;
     if(!r){
-        r = $('video');
-        if(!r) return;
+        r = $('video:not([blur]):not([hasvideoproxy])');
+        pageType++;
+    }
+    if(!r) return;
+    var v=ct('video'),
+        a=ct('a', '视频无法播放？点此解决');
+    if(pageType == 0){
+        r=r.parentNode;
+    }else if(pageType == 1){
         var rootPadding = r.parentElement,
             videoSlot, videoSlotPadding, videoHolderRoot;
         videoSlot = videoSlotPadding = videoHolderRoot = null;
@@ -98,15 +109,16 @@ function doAddVideoEntry(){
             videoSlot = rootPadding;
             rootPadding = rootPadding.parentElement;
         }
-        v.id=idvt;
         v.setAttribute('blur', 'v2');
-        a.setAttribute('data-permalink-path', location.pathname.substr(1)); // 适配旧版代码
+        var tweetsURL = getTweetsURL(videoHolderRoot);
+        a.setAttribute('data-permalink-path', tweetsURL);// 适配旧版代码
+        a.href = '/'+tweetsURL; // 鼠标放在文字上时，浏览器左下角显示原帖地址（但是并不是用于点击后跳转，所以在下文的onclick里return false）
+        r.setAttribute('hasvideoproxy', '1');
         r=videoSlotPadding;//.appendChild(a); // 适配旧版代码
-    }else{
-        r=r.parentNode;
     }
     a.style.color = 'rgb(27, 149, 224)';
-    v.style.cssText='position:absolute; width:100%; height:100%; top:0; display:none';
+    a.style.cursor = 'help';
+    v.style.cssText='position:absolute; width:100%; height:calc(100% - 20px); top:0; display:none';
     r.appendChild(v);
     r.appendChild(a);
     a.onclick=function(){
@@ -128,7 +140,10 @@ function doAddVideoEntry(){
             pl(res); pl(rsl);
             v.autoplay = v.loop = v.controls = true;
             v.src = rsl[0];
+            v.style.height = '100%';
+            v.volume = 0.6;
         });
+        return false; // 鼠标放在文字上时，浏览器左下角显示原帖地址（但是并不是用于点击后跳转，所以return false）
     }
     v.onplay = function(){
         if(a) a.remove();
@@ -138,6 +153,23 @@ function doAddVideoEntry(){
         if(v.paused) v.play(); else v.pause();
         e.stopPropagation();
     }
+}
+function getTweetsURL(element){ // 获取当前视频元素所在的帖子的真实URL
+    var url = null,
+        testcase = /[^\/]*?\/status\/[0-9]*/; // 一个用于测试是否是具体帖子URL的用例。【[用户ID]/status/[帖子ID_数字]】
+    var testReplyRootUrl = (function(e){
+         /* 已测试：
+            进入一个回复帖页面，原帖中包含的视频 https://twitter.com/LEORChn/status/1230184640842829825
+            进入一个主题帖页面，原帖和回复帖均包含视频 https://twitter.com/Chisen_Lupus/status/1229804782589706240
+            进入一个帐号的空间页面，切换到“媒体”选项卡之后看到的每一个视频
+         */
+        var links = e.parentNode.parentNode.parentNode.firstElementChild.querySelectorAll('a');
+        for(var i=0; i<links.length; i++)
+            if(testcase.test(links[i].href))
+                return testcase.exec(links[i])[0];
+    })(element);
+    if(testReplyRootUrl) return testReplyRootUrl;
+    return testcase.exec(location.pathname)[0];
 }
 //-----
 function adaptDoublePhotoHeight(){
@@ -193,7 +225,7 @@ function getHeaders(){
     };
 }
 function http2(_method,_url,formdata,dofun,dofail){
-    pl('request cross-site http: '+_method+'\nurl: '+_url+'\nform: '+formdata);
+    pl('request cross-site http:\n\n'+_method+' '+_url+'\nform: '+formdata+'\n\n.');
     GM_xmlhttpRequest({
         method: _method.toUpperCase(),
         url: _url,
