@@ -1,8 +1,8 @@
 // ==UserScript==
 // @name         我的推特工具箱
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.3
-// @description  视频兼容修复。
+// @version      1.0.4
+// @description  视频兼容修复。查看用户的永久链接。
 // @author       LEORChn
 // @include      *://twitter.com/*
 // @run-at       document-start
@@ -10,13 +10,12 @@
 // @connect      download-twitter-videos.com
 // ==/UserScript==
 
-(function(){
-    setInterval(onIntervalFunction, 2000);
-})();
+var IntervalTime = 2000;
 function onIntervalFunction(){
     //doAddEntry(); // 隐藏转推。不稳定，如有需要请自行取消注释
     //doHideRetweet(); // 隐藏转推。不稳定，如有需要请自行取消注释
     doAddVideoEntry();
+    doAddUidViewer(); // 用户资料：永久链接
     adaptDoublePhotoHeight();
     doFixImageView();
 }
@@ -171,7 +170,43 @@ function getTweetsURL(element){ // 获取当前视频元素所在的帖子的真
     if(testReplyRootUrl) return testReplyRootUrl;
     return testcase.exec(location.pathname)[0];
 }
+
+//----- 在用户资料页面添加一个视图以查看他的永久链接
+var ID_USER_FOREVER_UID = 'leorchn_user_id';
+function doAddUidViewer(){
+    if(fv(ID_USER_FOREVER_UID)) return;
+    var followbtn = $('main a+div a+div [data-testid*=follow]'), // 定位到资料页面本人的关注按钮，而不是其他的关注按钮
+        a = ct('a'),
+        coret = ct('span'),
+        text = ct('span', '用户的永久链接');
+
+        a.style.cssText = 'position:absolute; right:0; width:120px; padding:5px; margin-top:10px; border:#1da1f2 solid 1px; border-radius:10px; text-align:center; color:#1da1f2; text-decoration:none';
+    coret.style.cssText = 'position:absolute; right:25px; width:10px; height:10px; top:-6px;      border:#1da1f2 solid 1px; border-bottom:none; border-right:none; transform:rotate(45deg); background-color:#fff;';
+
+    a.href = '/i/user/' + /\d*/.exec(followbtn.getAttribute('data-testid'))[0];
+    a.target = '_blank';
+    a.id = ID_USER_FOREVER_UID;
+    a.appendChild(coret);
+    a.appendChild(text);
+    followbtn.parentNode.appendChild(a);
+
+    var tmpView = followbtn, tmpView2;
+    while(true){ // 把名称 margin 一下以免挡到链接点击
+        tmpView2 = tmpView;
+        tmpView = tmpView.parentNode;
+        if(document.body == tmpView) break;
+        var prev = tmpView.previousElementSibling
+        if(prev == null) continue;
+        if(prev.tagName.toLowerCase() != 'a') continue;
+        if(tmpView.children.length < 3) continue;
+        if( ! tmpView.innerText.includes('@')) continue;
+        tmpView2.nextElementSibling.style.marginRight = '130px';
+        break;
+    }
+}
+
 //-----
+
 function adaptDoublePhotoHeight(){
     var a = $('.permalink-container .AdaptiveMedia');
     if(a) a.style.maxHeight = '500%'; // 重置设置，突破界限
@@ -197,6 +232,10 @@ function doFixImageView(){
         t[i].parentElement.style.position = 'static';
     }
 }
+//-----
+(function(){
+    setInterval(onIntervalFunction, IntervalTime);
+})();
 //----- my ezjs lib
 function fv(id){return document.getElementById(id);}
 function ft(tag){return document.getElementsByTagName(tag);}
