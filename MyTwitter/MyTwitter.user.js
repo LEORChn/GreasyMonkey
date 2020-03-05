@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         我的推特工具箱
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0.4
+// @version      1.0.5
 // @description  视频兼容修复。查看用户的永久链接。
 // @author       LEORChn
 // @include      *://twitter.com/*
@@ -175,8 +175,20 @@ function getTweetsURL(element){ // 获取当前视频元素所在的帖子的真
 var ID_USER_FOREVER_UID = 'leorchn_user_id';
 function doAddUidViewer(){
     if(fv(ID_USER_FOREVER_UID)) return;
-    var followbtn = $('main a+div a+div [data-testid*=follow]'), // 定位到资料页面本人的关注按钮，而不是其他的关注按钮
-        a = ct('a'),
+    var followbtn = $('main a+div a+div [data-testid*=follow]'); // 定位到资料页面本人的关注按钮，而不是其他的关注按钮
+    if(followbtn == null){ // 自己的资料页面
+        followbtn = $('a[href^="/settings/profile"]');
+        if(followbtn == null){
+            pl('永久链接显示失败，可能是功能已失效。');
+            return;
+        }
+        var my_uid_testcase = /\"user_id\".*?(\d+)/,
+            my_uid_source = $('script[nonce]').innerText,
+            my_uid = my_uid_testcase.exec(my_uid_source)[1];
+        followbtn.setAttribute('data-testid', my_uid);
+        followbtn.parentNode.style.display = 'block'; // 不加这个会导致气泡与“编辑个人资料”按钮重叠在一起
+    }
+    var a = ct('a'),
         coret = ct('span'),
         text = ct('span', '用户的永久链接');
 
@@ -197,7 +209,7 @@ function doAddUidViewer(){
         if(document.body == tmpView) break;
         var prev = tmpView.previousElementSibling
         if(prev == null) continue;
-        if(prev.tagName.toLowerCase() != 'a') continue;
+        //if(prev.tagName.toLowerCase() != 'a') continue; // 这个在自己的资料页面会测试失败
         if(tmpView.children.length < 3) continue;
         if( ! tmpView.innerText.includes('@')) continue;
         tmpView2.nextElementSibling.style.marginRight = '130px';
