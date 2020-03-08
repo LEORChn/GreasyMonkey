@@ -1,4 +1,5 @@
 // ==UserScript==
+// @name              WolfBBS
 // @name:zh-CN        狼之乐园辅助
 // @namespace         https://greasyfork.org/users/159546
 // @version           1.0
