@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              狼之乐园辅助
 // @namespace         https://greasyfork.org/users/159546
-// @version           1.0
+// @version           1.0.1
 // @description       包含功能有：聊天室辅助。
 // @author            LEORChn
 // @include           *://wolfbbs.net/*
@@ -18,8 +18,8 @@ var chatwindow = null,
     ID_LEORCHN_WOLFBBS_CHATROOM_CSS = 'leorchn_chatroom_css';
 function ChatRoom(){
     var lpn = location.pathname;
-    if(lpn.startsWith('/forum.php')){
-        var a = $('a[href*="chat.php"]');
+    if(lpn == '/' || lpn.startsWith('/forum.php')){
+        var a = $('#wgo_chat a');
         if(!a) return;
         a.onclick = function(){
             if(chatwindow){
