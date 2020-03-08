@@ -1,9 +1,8 @@
 // ==UserScript==
-// @name              WolfBBS
-// @name:zh-CN        狼之乐园辅助
+// @name              狼之乐园辅助
 // @namespace         https://greasyfork.org/users/159546
 // @version           1.0
-// @description:zh-CN 包含功能有：聊天室辅助。
+// @description       包含功能有：聊天室辅助。
 // @author            LEORChn
 // @include           *://wolfbbs.net/*
 // @run-at            document-start
