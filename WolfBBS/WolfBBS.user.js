@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name              狼之乐园辅助
 // @namespace         https://greasyfork.org/users/159546
-// @version           1.0.1
+// @version           1.0.2
 // @description       包含功能有：聊天室辅助。
 // @author            LEORChn
 // @include           *://wolfbbs.net/*
@@ -26,17 +26,28 @@ function ChatRoom(){
                 if(!chatwindow.closed && !confirm('您已经打开了一个聊天窗口！\n\n要重新打开吗？')) return false;
                 if(!chatwindow.closed) chatwindow.close();
             }
-            chatwindow = window.open('/chat.php', '_blank', 'location=no,resizable=no,width=910,height=673,left='+window.screenX+',top='+window.screenY);
+            chatwindow = window.open('/chat.php', '_blank', 'location=no,resizable=no,width=770,height=530,left='+window.screenX+',top='+window.screenY);
             window.cwin = chatwindow;
             return false;
         };
     }else if(lpn.startsWith('/chat.php')){
         if(fv(ID_LEORCHN_WOLFBBS_CHATROOM_CSS)) return;
         var cssdiv = ct('style#'+ID_LEORCHN_WOLFBBS_CHATROOM_CSS);
-        var css = 'html body{ width:910px; overflow:hidden; background-position-x:-20px }' +
-            'body>.body_wrapper{ padding:0; margin:0 }' +
+        var css = 'html body{ width:100vw; min-width:770px; overflow:hidden; background-position-x:-20px; background:rgb(247,246,228) }' +
+            'body>.body_wrapper{ width:100vw; padding:0; margin:0 }' +
             'body>.above_body,' +
-            '#breadcrumb, form#notices, #pagetitle, #wgo, #footer, .below_body{ display:none }';
+            '#breadcrumb, form#notices, #pagetitle, #pfc_minmax, #pfc_title, #wgo, #footer, .below_body{ display:none }' + // 隐藏元素
+            'div.body_wrapper>#pfc_container{ position:absolute; top:0; padding:0; z-index:-9 }' + // 外边框：去除padding
+            '#pfc_channels_content .pfc_online{ width:170px }' + // 在线列表：最小宽度
+            '#pfc_channels_content .pfc_chat{ width:calc(100% - 170px) }' + // 聊天窗：由在线列表减去的宽度
+            '#pfc_input_container{ position:relative }' + // 调整输入框及其之后的布局方法
+            '#pfc_input_container>table:first-child{ max-width:calc(100% - 175px) }' + // 限制聊天输入框大小
+            '#pfc_input_container #pfc_words{ width:calc(100% - 20px); height:100%; padding:0 10px; border-radius:20px }' + // 美化聊天输入框
+            '#pfc_input_container>#pfc_cmd_container{ position:absolute; width:170px; height:40px; right:2px; top:0 }' + // 表情等功能按钮设置位置
+            '#pfc_input_container #pfc_logo{ position:absolute; bottom:0 }' + // 调整聊天组件（PFC）的LOGO位置
+            '#pfc_input_container #pfc_ping{ position:absolute; bottom:0; right:0; margin:0; padding:0 5px; background:rgb(251,244,225) }' + // 调整延迟值显示位置
+            '#pfc_content_expandable>#pfc_smileys{ position:absolute; bottom:0px; right:0px; width:166px; padding:0 0 3px; margin-bottom:55px; z-index:99 }' + // 表情选择栏
+            "#pfc_smileys:after{ content:' '; position:absolute; display:block; width:10px; height:10px; right:74px; bottom:-5px; transform:rotate(45deg); z-index:-1; background:#fff }"; //
         cssdiv.innerText = css;
         document.head.appendChild(cssdiv);
     }
