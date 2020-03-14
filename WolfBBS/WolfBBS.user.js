@@ -1,15 +1,25 @@
 // ==UserScript==
 // @name              狼之乐园辅助
 // @namespace         https://greasyfork.org/users/159546
-// @version           1.0.3
+// @version           1.0.4
 // @description       包含功能有：聊天室辅助。
 // @author            LEORChn
 // @include           *://wolfbbs.net/*
 // @run-at            document-start
 // @grant             GM_xmlHttpRequest
+// @grant             GM_notification
 // @connect           translate.google.cn
 // ==/UserScript==
 registerPrototype();
+
+setTimeout(function(){
+    GM_notification({
+        title: '通知已打开',
+        text: '此消息在60秒后过期。\n'+new Date().getTime(),
+        timeout: 60000,
+        image: 'http://wolfbbs.net/favicon.ico'
+    });
+}, 2000);
 var IntervalTimeout = 1000;
 function onInterval(){ // daemon
     ChatRoom();
@@ -20,6 +30,7 @@ var chatwindow = null,
     ID_LEORCHN_WOLFBBS_CHATROOM_CSS_MORE_FUNCTION = 'leorchn_chatroom_css_more_function',
     ID_LEORCHN_WOLFBBS_CHATROOM_MORE_FUNCTION = 'leorchn_chatroom_more_function';
 function ChatRoom(){
+    Notification_init();
     var lpn = location.pathname;
     if(lpn == '/' || lpn.startsWith('/forum.php')){
         var a = $('#wgo_chat a');
@@ -36,6 +47,7 @@ function ChatRoom(){
     }else if(lpn.startsWith('/chat.php')){
         ChatRoomImpl_injectCss();
         ChatRoomImpl_injectMoreFunction();
+        ChatRoomImpl_testNewMessage();
     }
 }
 function ChatRoomImpl_injectCss(){
@@ -75,20 +87,76 @@ function ChatRoomImpl_injectMoreFunction(){
         divid + ' a{ cursor:pointer }'; // 由于 a标签 没有 href属性 会使用默认指针样式，变为手形
     cssdiv.innerText = css;
     document.head.appendChild(cssdiv);
+    var ChatRoomTest_base = function(e){
+        var root = $('#pfc_channels_content .pfc_chat'),
+            pack = ct('div'),
+            msg = ct('div.pfc_cmd_send pfc_message pfc_evenmsg'),
+            date = ct('span.pfc_date', '13/03/2020'),
+            time = ct('span.pfc_heure', '20:40:39'),
+            nick = ct('span.pfc_nick', '<'),
+            nick_marker = ct('span.pfc_nickmarker', '其他人');
+        pack.appendChild(msg);
+        e.className = 'pfc_words';
+        [date, time, nick, e].forEach(function(e){
+            msg.appendChild(e);
+        });
+        nick.appendChild(nick_marker);
+        nick.appendChild(document.createTextNode('>'));
+        root.appendChild(pack);
+    },
+    ChatRoomTest_addImgText = function(){
+        var span = ct('span'),
+            a = ct('a'),
+            img = ct('img');
+        img.src = 'http://wolfbbs.net/phpfreechat/showimage.php?image=1583985191.png&t=1';
+        span.appendChild(a);
+        a.appendChild(img);
+        span.appendChild(document.createTextNode('我这边可以打开'));
+        ChatRoomTest_base(span);
+    },
+    ChatRoomTest_addText = function(){
+        var span = ct('span');
+        span.appendChild(document.createTextNode('@狼王白牙, 推特改造的话。。做过类似的，但是改得没那么好。你详细说说看你想怎么改？关闭显示 “你可能会喜欢” “趋势” 应该会挺简单的我觉得'));
+        ChatRoomTest_base(span);
+    },
+    ChatRoomTest_addTextEmoticonText = function(){
+        var span = ct('span'),
+            txt1 = document.createTextNode('不知道 › @LEORChn 的推特使用习惯如何'),
+            emo1 = ct('img'),
+            txt2 = document.createTextNode('偶尔发一次图的反而会留在我的关注名单，太多嘴的反而会解除关注，真不适合交太多朋友，没传统论坛好用'),
+            emo2 = ct('img');
+        emo1.src = 'phpfreechat/data/public/themes/wolfbbs/smileys/jcdragon-tail-faster.gif';
+        emo1.alt = emo1.title = '(tail)';
+        emo2.src = 'phpfreechat/data/public/themes/wolfbbs/smileys/jcdragon-tea.gif';
+        emo2.alt = emo2.title = '(tea)';
+        [txt1, emo1, txt2, emo2].forEach(function(e){
+            span.appendChild(e);
+        });
+        ChatRoomTest_base(span);
+    };
     var rootbtn = ct('button' + divid, '更多功能'),
         listdiv = ct('div'),
         functions = {
             '复位窗口大小': ChatRoomImpl_resizeWindow
+            //,'添加记录：图片+文字': ChatRoomTest_addImgText
+            //,'添加记录：文字': ChatRoomTest_addText
+            //,'添加记录：文字+表情+文字': ChatRoomTest_addTextEmoticonText
         };
+    var funarr = [];
     for(var f in functions){
-        var a = ct('a', f),
-            fun = functions[f];
+        funarr.push({
+            name: f,
+            fun: functions[f]
+        });
+    }
+    funarr.forEach(function(e){
+        var a = ct('a', e.name);
         a.onclick = function(){
-            fun();
+            e.fun();
             return false;
         };
         listdiv.appendChild(a);
-    }
+    });
     rootbtn.appendChild(listdiv);
     root.appendChild(rootbtn);
 }
@@ -101,6 +169,101 @@ function ChatRoomImpl_resizeWindow( DO_NOT_ADD_PARAM ){
             ChatRoomImpl_resizeWindow(0);
         }, 200);
     }
+}
+var ChatRoom_lastMsg = null,
+    ChatRoom_initTime = 0; // 算了
+function ChatRoomImpl_testNewMessage(){
+    var pfc_chat = $('.pfc_chat');
+    if(!pfc_chat) return;
+    var all_msg = $$('.pfc_chat>div>div'),
+        last_msg = $('.pfc_chat>div:last-child>div:last-child'),
+        last_msg_sender = last_msg.querySelector('.pfc_nick>span'), // 空白即为系统消息（上线或者下线）
+        last_msg_content = last_msg, //
+        self_name = $('#pfc_handle').innerText,
+        need_scroll_to_bottom = false,
+        need_notify_message = false,
+        need_notify_online = false,
+        need_notify_offline = false;
+    last_msg_sender = last_msg_sender? last_msg_sender.innerText: ''; // 将元素转换为发送者名称，null转换为空白发送者（判定为系统消息）
+    if(ChatRoom_lastMsg == null){
+        var login = new Audio();
+        login.src = 'http://downsc.chinaz.net/Files/DownLoad/sound1/201301/2554.mp3'; // WindowsXP 开机 http://sc.chinaz.com/yinxiao/130108438723.htm
+        login.volume = 0.20;
+        login.play();
+        ChatRoom_lastMsg = 0;
+        //ChatRoom_initTime = new Date().getTime();
+    }else{
+        if(ChatRoom_lastMsg != last_msg){ // 判断是否需要滚动到最底部，仅首次检测到时有效
+            //if(new Date().getTime() - ChatRoom_initTime < 60000) need_scroll_to_bottom = true; // 刚初始化时还没有加载图片，图片加载后会顶起来导致最新的几条消息没有显示
+            if(last_msg_sender == self_name) need_scroll_to_bottom = true; // 因为自己发送了新消息所以滚动到最底下
+            if(pfc_chat.scrollHeight - pfc_chat.scrollTop - pfc_chat.clientHeight < 250) need_scroll_to_bottom = true; // 因为之前就是滚动到最底下，但新消息的高度可能会有点问题所以这里判定为需要滚动到最底下
+            // 滚动到底部：
+            if(need_scroll_to_bottom) pfc_chat.scrollTop = pfc_chat.scrollHeight;
+        }
+        pl('lastmsg: ' + last_msg_sender + ': ' + last_msg_content.innerText);
+        if(ChatRoom_lastMsg == last_msg) return;
+
+        ChatRoomImpl_notification({
+            type: 'msg',
+            title: last_msg_sender,
+            desc: last_msg_content
+        });
+    }
+    if(last_msg != null) ChatRoom_lastMsg = last_msg;
+}
+function ChatRoomImpl_notification(detail){
+    var title, raw, text, sound;
+    switch(detail.type){
+        case 'msg':
+            title = detail.title;
+            raw = detail.desc.querySelector('.pfc_words'); // 自己发的就会多套一层span 但是别人发的不会
+            text = [];
+            for(var i=0, a=raw.childNodes, len=a.length; i<len; i++){
+                var e = a[i];
+                text[text.length] = 'innerText' in e? // 如果不是文本节点
+                    e.innerText == ''? // 如果元素节点内（A标签内）是空文本
+                        ' [图片] ': // 用“图片”文本代替之
+                        e.innerText: // 显示元素节点内的链接文本
+                    e.textContent; // 显示文本节点的文本
+            };
+            text = text.join('');
+            sound = WAV_MSG;
+            break;
+        case 'online':
+            sound = WAV_ONLINE;
+            break;
+        case 'offline':
+            break;
+        case 'err':
+            sound = WAV_ALERT;
+            break;
+        default:
+    }
+    GM_notification({
+        title: title,
+        text: text,
+        timeout: 86400000, // 超时时间为1天
+        image: 'http://wolfbbs.net/favicon.ico'
+    });
+    if(sound){
+        sound.currentTime = 0;
+        sound.play();
+    }
+}
+
+var WAV_ONLINE = null,
+    WAV_MSG = null,
+    WAV_ALERT = null;
+function Notification_init(){ // 可以无限制调用，但必须先调用这个才能播放声音
+    var creating = function(url){
+        var player = new Audio();
+        player.src = url;
+        //document.body.appendChild(player);
+        return player;
+    };
+    if(WAV_ONLINE == null) WAV_ONLINE = creating('http://downsc.chinaz.net/Files/DownLoad/sound1/201308/3426.mp3'); // 狼叫 http://sc.chinaz.com/yinxiao/130824455512.htm
+    if(WAV_MSG    == null) WAV_MSG    = creating('http://downsc.chinaz.net/Files/DownLoad/sound1/201703/8407.mp3'); // 接收消息 http://sc.chinaz.com/yinxiao/170304583990.htm
+    if(WAV_ALERT  == null) WAV_ALERT  = creating('http://downsc.chinaz.net/Files/DownLoad/sound1/201904/11441.mp3'); // 喇叭错误 http://sc.chinaz.com/yinxiao/190428481530.htm
 }
 
 (function(){
