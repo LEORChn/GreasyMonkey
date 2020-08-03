@@ -1,13 +1,16 @@
 // ==UserScript==
-// @name         快速跳转
+// @name         QuickJump
+// @name:zh-CN   快速跳转
 // @namespace    https://greasyfork.org/users/159546
-// @version      1.0
-// @description  快速跳转。支持酷安开发者中心快速跳过欢迎界面、CSDN跳转到谷歌缓存。
+// @version      1.0.2
+// @description  pointless for english user. this is just source filename
+// @description:zh-CN  快速跳转。支持酷安开发者中心快速跳过欢迎界面、CSDN跳转到谷歌缓存、微博自动跳转QQ登录。
 // @author       LEORChn
 // @include      *://developer.coolapk.com/*
 // @include      *://passport.csdn.net/*
 // @include      *://blog.csdn.net/*
 // @include      *://www.google.com.hk/*
+// @include      *://weibo.com/
 // @run-at       document-start
 // @grant        none
 // ==/UserScript==
@@ -25,6 +28,7 @@ function init(){ // call once when start loading page
     checkIfCoolApk();
     checkIfCsdn();
     checkIfCsdnBlog();
+    checkIfWeibo();
     if(ft('body').length==0) return;
     inited=true;
 }
@@ -86,6 +90,13 @@ function checkIfCsdnBlog(){
         }catch(e){}
     }
 }
+function checkIfWeibo(){
+    if(location.host == 'weibo.com' && location.pathname == '/'){
+        try{
+            location.href = $('a[href*="passport.weibo.com"][href*="site=qq"]').href;
+        }catch(e){}
+    }
+}
 //----- my ezjs lib
 function fv(id){return document.getElementById(id);}
 function ft(tag){return document.getElementsByTagName(tag);}
@@ -94,3 +105,4 @@ function ct(tag){return document.createElement(tag);}
 function msgbox(msg){alert(msg);}
 function inputbox(title,defalt){return prompt(title,defalt);}
 function pl(s){console.log(s);}
+function $(s){return document.querySelector(s);}
