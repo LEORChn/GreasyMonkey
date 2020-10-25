@@ -14,7 +14,7 @@
 // @grant             GM_xmlHttpRequest
 // @connect           translate.google.cn
 // ==/UserScript==
-var DEBUG = 1
+var DEBUG = 0
 ? 'http://127.0.0.1:81': 'https://leorchn.github.io';
 var IntervalTime = 2000;
 function onIntervalFunction(){
