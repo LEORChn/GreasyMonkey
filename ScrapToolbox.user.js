@@ -2,8 +2,8 @@
 // @name              ScrapToolbox
 // @description       what a scrap!
 // @name:zh-CN        乱七八糟工具箱
-// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
-// @version           1.0.3
+// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
+// @version           1.0.4
 // @namespace         https://greasyfork.org/users/159546
 // @author            LEORChn
 // @include           *://zhidao.baidu.com/*
@@ -11,10 +11,14 @@
 // @include           *://www.dashengpan.com/detail/*
 // @include           *://www.chaonengsou.com/*
 // @include           *://to-do.live.com/tasks/*
+// @include           *://github.com/*
+// @include           *://gist.github.com/*
 // @require           https://greasyfork.org/scripts/401996-baselib/code/baseLib.js?version=835697
 // @run-at            document-body
-// @grant             GM_xmlHttpRequest
-// @connect           translate.google.cn
+// @grant             GM_xmlhttpRequest
+// @connect           127.0.0.1
+// @connect           127.0.0.1:81
+// @connect           leorchn.github.io
 // ==/UserScript==
 var DEBUG = 0
 ? 'https://127.0.0.1:81': 'https://leorchn.github.io';
@@ -25,6 +29,7 @@ function onIntervalFunction(){
     www.chaonengsou.com();
     www.dashengpan.com();
     todo.live.com();
+    github.com();
 }
 var zhidao = { baidu: { com: function(){
     if(location.hostname != 'zhidao.baidu.com') return;
@@ -35,9 +40,7 @@ var zhidao = { baidu: { com: function(){
 }}},
 weibo = { com: function (){
     if(location.hostname != 'weibo.com') return;
-    var eid = 'leorchn_weibo_stylesheet';
-    if($('#' + eid)) return;
-    appendCSS(DEBUG + '/app/external/weibo.com.css').id = eid;
+    if(injectCSS('leorchn_weibo_stylesheet', 'weibo.com.css')) return;
     appendJS(DEBUG + '/app/external/weibo.com.js');
 }},
 www = { dashengpan: { com: function(){
@@ -56,21 +59,35 @@ www = { dashengpan: { com: function(){
 }},
 chaonengsou: { com: function(){
     if(location.hostname != 'www.chaonengsou.com') return;
-    var eid = 'leorchn_chaonengsou_stylesheet';
-    if($('#' + eid)) return;
-    appendCSS(DEBUG + '/app/external/www.chaonengsou.com.css').id = eid;
+    injectCSS('leorchn_chaonengsou_stylesheet', 'www.chaonengsou.com.css');
 }}
 },
 todo = { live:{ com: function(){
     if(location.hostname != 'to-do.live.com') return;
-    var eid = 'leorchn_microsoft_to_do_stylesheet';
-    if($('#' + eid)) return;
-    appendCSS(DEBUG + '/app/external/to-do.live.com.css').id = eid;
-}}};
-
+    injectCSS('leorchn_microsoft_to_do_stylesheet', 'to-do.live.com.css');
+}}},
+github = { com: function(){
+    if((location.hostname != 'github.com') && (location.hostname != 'gist.github.com')) return;
+    injectInlineCSS('leorchn_github_stylesheet', 'github.com.css');
+    injectInlineCSS('leorchn_github_profile',    'github.com.profile.css');
+    injectInlineCSS('leorchn_github_repository', 'github.com.repository.css');
+}};
 // ===== =====
 setInterval(onIntervalFunction, IntervalTime);
 
+function injectCSS(id, cssName){
+    if($('#' + id)) return true;
+    appendCSS(DEBUG + '/app/external/' + cssName).id = id;
+}
+function injectInlineCSS(id, cssName){
+    if($('#' + id)) return true;
+    http2('get', DEBUG + '/app/external/' + cssName, '', function(e){
+        var s = ct('style');
+        s.id = id;
+        s.innerHTML = e.responseText;
+        htmlhead.appendChild(s);
+    });
+}
 function appendCSS(url){
     var s = ct('link');
     s.rel = 'stylesheet';
@@ -83,4 +100,15 @@ function appendJS(url){
     s.src = url;
     htmlhead.appendChild(s);
     return s;
+}
+function http2(_method, _url, formdata, dofun, dofail){
+    console.log('request cross-site http:\n\n'+_method+' '+_url+'\nform: '+formdata+'\n\n.');
+    GM_xmlhttpRequest({
+        method: _method.toUpperCase(),
+        url: _url,
+        data: formdata,
+        // headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        onload: dofun,
+        onerror: dofail
+    });
 }
