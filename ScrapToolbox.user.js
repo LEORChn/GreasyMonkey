@@ -2,8 +2,8 @@
 // @name              ScrapToolbox
 // @description       what a scrap!
 // @name:zh-CN        乱七八糟工具箱
-// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
-// @version           1.0.4
+// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：推特界面修复、Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
+// @version           1.0.5
 // @namespace         https://greasyfork.org/users/159546
 // @author            LEORChn
 // @include           *://zhidao.baidu.com/*
@@ -13,6 +13,9 @@
 // @include           *://to-do.live.com/tasks/*
 // @include           *://github.com/*
 // @include           *://gist.github.com/*
+// @include           *://greasyfork.org/*
+// @include           *://www.bilibili.com/read/*
+// @include           *://twitter.com/*
 // @require           https://greasyfork.org/scripts/401996-baselib/code/baseLib.js?version=835697
 // @run-at            document-body
 // @grant             GM_xmlhttpRequest
@@ -22,6 +25,7 @@
 // ==/UserScript==
 var DEBUG = 0
 ? 'https://127.0.0.1:81': 'https://leorchn.github.io';
+var DBG = DEBUG.includes('127.0.0.1')? '?' + Date.now(): '';
 var IntervalTime = 2000;
 function onIntervalFunction(){
     zhidao.baidu.com();
@@ -30,6 +34,9 @@ function onIntervalFunction(){
     www.dashengpan.com();
     todo.live.com();
     github.com();
+    greasyfork.org();
+    www.bilibili.com();
+    twitter.com();
 }
 var zhidao = { baidu: { com: function(){
     if(location.hostname != 'zhidao.baidu.com') return;
@@ -60,6 +67,10 @@ www = { dashengpan: { com: function(){
 chaonengsou: { com: function(){
     if(location.hostname != 'www.chaonengsou.com') return;
     injectCSS('leorchn_chaonengsou_stylesheet', 'www.chaonengsou.com.css');
+}},
+bilibili: { com: function(){
+    if(location.hostname != 'www.bilibili.com') return;
+    injectCSS('leorchn_bilibili_stylesheet', 'www.bilibili.com.css');
 }}
 },
 todo = { live:{ com: function(){
@@ -68,9 +79,17 @@ todo = { live:{ com: function(){
 }}},
 github = { com: function(){
     if((location.hostname != 'github.com') && (location.hostname != 'gist.github.com')) return;
-    injectInlineCSS('leorchn_github_stylesheet', 'github.com.css');
-    injectInlineCSS('leorchn_github_profile',    'github.com.profile.css');
-    injectInlineCSS('leorchn_github_repository', 'github.com.repository.css');
+    injectInlineCSS('leorchn_github_stylesheet', 'github.com.css' + DBG);
+    injectInlineCSS('leorchn_github_profile',    'github.com.profile.css' + DBG);
+    injectInlineCSS('leorchn_github_repository', 'github.com.repository.css' + DBG);
+}},
+greasyfork = { org: function(){
+    if(location.hostname != 'greasyfork.org') return;
+    injectCSS('leorchn_greasyfork_stylesheet', 'greasyfork.org.css');
+}},
+twitter = { com: function(){
+    if(location.hostname != 'twitter.com') return;
+    injectInlineCSS('leorchn_twitter_stylesheet', 'twitter.com.css' + DBG);
 }};
 // ===== =====
 setInterval(onIntervalFunction, IntervalTime);
@@ -102,7 +121,7 @@ function appendJS(url){
     return s;
 }
 function http2(_method, _url, formdata, dofun, dofail){
-    console.log('request cross-site http:\n\n'+_method+' '+_url+'\nform: '+formdata+'\n\n.');
+    console.log(_method.toUpperCase()+' '+_url+(formdata && formdata.length > 0 ? '\nform: '+formdata:'') +'\n\n.');
     GM_xmlhttpRequest({
         method: _method.toUpperCase(),
         url: _url,
