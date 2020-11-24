@@ -2,8 +2,8 @@
 // @name              ScrapToolbox
 // @description       what a scrap!
 // @name:zh-CN        乱七八糟工具箱
-// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：推特界面修复、Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
-// @version           1.0.5
+// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：V2EX界面修复、推特界面修复、Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
+// @version           1.0.8
 // @namespace         https://greasyfork.org/users/159546
 // @author            LEORChn
 // @include           *://zhidao.baidu.com/*
@@ -15,8 +15,12 @@
 // @include           *://gist.github.com/*
 // @include           *://greasyfork.org/*
 // @include           *://www.bilibili.com/read/*
+// @include           *://link.bilibili.com/ctool/vtuber/*
 // @include           *://twitter.com/*
+// @include           *://www.v2ex.com/*
 // @require           https://greasyfork.org/scripts/401996-baselib/code/baseLib.js?version=835697
+// @require           https://greasyfork.org/scripts/401997-http/code/http.js?version=797848
+// @require           https://127.0.0.1:81/app/external/github.com.js?12
 // @run-at            document-body
 // @grant             GM_xmlhttpRequest
 // @connect           127.0.0.1
@@ -36,7 +40,9 @@ function onIntervalFunction(){
     github.com();
     greasyfork.org();
     www.bilibili.com();
+    link.bilibili.com();
     twitter.com();
+    www.v2ex.com();
 }
 var zhidao = { baidu: { com: function(){
     if(location.hostname != 'zhidao.baidu.com') return;
@@ -68,20 +74,30 @@ chaonengsou: { com: function(){
     if(location.hostname != 'www.chaonengsou.com') return;
     injectCSS('leorchn_chaonengsou_stylesheet', 'www.chaonengsou.com.css');
 }},
+v2ex: { com: function(){
+    if(location.hostname != 'www.v2ex.com') return;
+    injectCSS('leorchn_v2ex_stylesheet', 'www.v2ex.com.css');
+}},
 bilibili: { com: function(){
     if(location.hostname != 'www.bilibili.com') return;
     injectCSS('leorchn_bilibili_stylesheet', 'www.bilibili.com.css');
 }}
 },
+link = { bilibili: { com: function(){
+    if(location.hostname != 'link.bilibili.com') return;
+    injectCSS('leorchn_bilibili_stylesheet', 'link.bilibili.com.ctool.vtuber.css');
+}}},
 todo = { live:{ com: function(){
     if(location.hostname != 'to-do.live.com') return;
     injectCSS('leorchn_microsoft_to_do_stylesheet', 'to-do.live.com.css');
 }}},
 github = { com: function(){
     if((location.hostname != 'github.com') && (location.hostname != 'gist.github.com')) return;
-    injectInlineCSS('leorchn_github_stylesheet', 'github.com.css' + DBG);
-    injectInlineCSS('leorchn_github_profile',    'github.com.profile.css' + DBG);
-    injectInlineCSS('leorchn_github_repository', 'github.com.repository.css' + DBG);
+    injectInlineCSS('leorchn_github_stylesheet',         'github.com.css' + DBG);
+    injectInlineCSS('leorchn_github_fragment',           'github.com.fragment.css' + DBG);
+    injectInlineCSS('leorchn_github_profile',            'github.com.profile.css' + DBG);
+    injectInlineCSS('leorchn_github_repository',         'github.com.repository.css' + DBG);
+    injectInlineCSS('leorchn_github_repository_commits', 'github.com.repository.commits.css' + DBG);
 }},
 greasyfork = { org: function(){
     if(location.hostname != 'greasyfork.org') return;
@@ -102,6 +118,15 @@ function injectInlineCSS(id, cssName){
     if($('#' + id)) return true;
     http2('get', DEBUG + '/app/external/' + cssName, '', function(e){
         var s = ct('style');
+        s.id = id;
+        s.innerHTML = e.responseText;
+        htmlhead.appendChild(s);
+    });
+}
+function injectInlineJS(id, jsName){
+    if($('#' + id)) return true;
+    http2('get', DEBUG + '/app/external/' + jsName, '', function(e){
+        var s = ct('script');
         s.id = id;
         s.innerHTML = e.responseText;
         htmlhead.appendChild(s);
