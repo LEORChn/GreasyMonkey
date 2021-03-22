@@ -2,8 +2,8 @@
 // @name              ScrapToolbox
 // @description       switch to Chinese for details. this might not for English users.
 // @name:zh-CN        乱七八糟工具箱
-// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：Steam显示永久链接、B博图片修复、必应图片详情页修复、必应滚屏BUG修复、V2EX界面修复、推特界面修复、Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
-// @version           1.0.11
+// @description:zh-CN 这里面有一堆用来兼容旧浏览器的垃圾！包括：知乎屏蔽首屏登录、哔哩哔哩修复B博图片显示、Steam显示永久链接、B博图片修复、必应图片详情页修复、必应滚屏BUG修复、V2EX界面修复、推特界面修复、Github新版布局修复、微软待办布局修复、超能搜布局修复、大圣盘直链显示、微博新版界面修复、百度知道展开折叠
+// @version           1.0.12
 // @namespace         https://greasyfork.org/users/159546
 // @author            LEORChn
 // @include           *://zhidao.baidu.com/*
@@ -21,6 +21,7 @@
 // @include           *://twitter.com/*
 // @include           *://www.v2ex.com/*
 // @include           *://cn.bing.com/*
+// @include           *://zhuanlan.zhihu.com/*
 // @require           https://greasyfork.org/scripts/401996-baselib/code/baseLib.js?version=835697
 // @require-           https://greasyfork.org/scripts/401997-http/code/http.js?version=797848
 // @require-           https://127.0.0.1:81/app/external/github.com.js?16
@@ -53,6 +54,8 @@ function onIntervalFunction(){
     com.twitter();
     // v2ex 寂智信息科技（上海）有限公司
     com.v2ex.www();
+    // zhihu 北京智者天下
+    com.zhihu.zhuanlan();
     // greasyfork
     org.greasyfork();
     // other
@@ -193,6 +196,17 @@ var com = {
     v2ex: { www: function(){
         if(location.hostname != 'www.v2ex.com') return;
         injectCSS('leorchn_v2ex_stylesheet', 'www.v2ex.com.css');
+    }},
+
+    // ========== zhihu ==========
+    zhihu: { zhuanlan: function(){
+        if(location.hostname != 'zhuanlan.zhihu.com') return;
+        if(com.zhihu.zhuanlan.blockedFirstLoginPopup) return;
+        var loginPopupCloseButton = $('.signFlowModal button.Modal-closeButton');
+        if(loginPopupCloseButton){
+            loginPopupCloseButton.click();
+            com.zhihu.zhuanlan.blockedFirstLoginPopup = true;
+        }
     }},
 
     // ========== other ==========
